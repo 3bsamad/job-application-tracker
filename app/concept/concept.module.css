@@ -128,7 +128,7 @@
   .editorialUtility{padding-inline:16px}.editorialUtility>div{width:100%;display:grid;grid-template-columns:1fr 1fr}.editorialUtility button{justify-content:center}
   .archiveFilters{overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.archiveFilters button{white-space:nowrap}
   .detailBottomActions{align-items:stretch;flex-direction:column}.detailBottomActions .detailLink,.detailDelete{width:100%}
-  .addGrid{grid-template-columns:1fr}.timelineEditRow{grid-template-columns:22px 1fr}.timelineEditRow select,.timelineEditRow input[type=date],.timelineEditRow input[placeholder=Label]{grid-column:2}.timelineEditRow button{grid-column:2;justify-self:start;width:36px}
+  .addGrid{grid-template-columns:1fr}.timelineEditRow{grid-template-columns:22px 1fr}.timelineEditRow select,.timelineEditRow input[type=date],.timelineEditRow input[placeholder=Label],.eventStateStatic{grid-column:2}.timelineEditRow button{grid-column:2;justify-self:start;width:36px}
 }
 
 
@@ -469,7 +469,7 @@
   .osMenu>div:first-child span:not(.pixelLogo),.osMenu>div:last-child span:not(.osOnlineDot){display:none}.osMenu{height:34px}.desktopIcons{position:relative;left:auto;top:auto;width:auto;display:flex;gap:8px;padding:12px 12px 0;overflow-x:auto}.desktopIcons button{min-width:66px}.desktopIcons button>span{width:42px;height:42px}.retroDesktopShell{overflow:visible}
   .desktop,.osWorkspace{padding:14px 12px 62px;display:block;min-height:auto}.desktop>.osWindow{margin-bottom:14px;transform:none}.osWorkspaceWindow{min-height:0}.osFinderToolbar{flex-wrap:wrap}.osFinderToolbar label{order:5;flex-basis:100%;min-width:0}.osFilterbar{overflow-x:auto}.osFilterbar>span{display:none}
   .osTable{overflow-x:auto}.osTableHead,.osTableRow{min-width:760px}.osFinderStatus{grid-template-columns:auto auto 1fr}.osFinderStatus span:nth-child(3){display:none}.osPipelineBoard{grid-template-columns:repeat(4,240px)}.osReportGrid{grid-template-columns:1fr}.osReportBanner{grid-template-columns:1fr auto}.osReportBanner i{display:none}
-  .osTaskbar button:nth-of-type(2),.osTaskbar button:nth-of-type(3),.osTaskbar button:nth-of-type(4){display:none}.osTaskbar{height:46px}.osTaskbar button{min-height:34px}.osDialog{width:min(100%,620px)}.osDialogBody,.osEditForm{padding:16px}.osFormGrid{grid-template-columns:1fr}.osTimelineEditRow{grid-template-columns:22px 1fr}.osTimelineEditRow select,.osTimelineEditRow input{grid-column:2}.osTimelineEditRow button{grid-column:2;width:32px}.osDialogActions{flex-wrap:wrap}.osDialogActions>span{flex-basis:100%;margin:0}
+  .osTaskbar button:nth-of-type(2),.osTaskbar button:nth-of-type(3),.osTaskbar button:nth-of-type(4){display:none}.osTaskbar{height:46px}.osTaskbar button{min-height:34px}.osDialog{width:min(100%,620px)}.osDialogBody,.osEditForm{padding:16px}.osFormGrid{grid-template-columns:1fr}.osTimelineEditRow{grid-template-columns:22px 1fr}.osTimelineEditRow select,.osTimelineEditRow input,.osEventStateStatic{grid-column:2}.osTimelineEditRow button{grid-column:2;width:32px}.osDialogActions{flex-wrap:wrap}.osDialogActions>span{flex-basis:100%;margin:0}
 }
 
 /* 03 — Loud Brutalist */
