@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown,Clock3} from 'lucide-react';
 import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,states} from '@/lib/model';
 import styles from '../concept.module.css';
 
@@ -75,9 +75,11 @@ function useMetrics(jobs:Job[]){
 }
 
 type EditorialTheme='archive'|'signal'|'night';
+type RetroTheme='vapor'|'classic'|'midnight';
 
-function ConceptNav({variant,editorialTheme,onEditorialTheme}:{variant:ConceptVariant;editorialTheme?:EditorialTheme;onEditorialTheme?:(theme:EditorialTheme)=>void}){
+function ConceptNav({variant,editorialTheme,onEditorialTheme,retroTheme,onRetroTheme}:{variant:ConceptVariant;editorialTheme?:EditorialTheme;onEditorialTheme?:(theme:EditorialTheme)=>void;retroTheme?:RetroTheme;onRetroTheme?:(theme:RetroTheme)=>void}){
   const themeName=editorialTheme==='archive'?'Archive':editorialTheme==='night'?'Night':'Signal';
+  const retroName=retroTheme==='classic'?'Classic':retroTheme==='midnight'?'Midnight':'Vapor';
   return <div className={styles.switcher}>
     <Link href="/" title="Original tracker design">00 Studio</Link>
     <span>Styles</span>
@@ -94,7 +96,19 @@ function ConceptNav({variant,editorialTheme,onEditorialTheme}:{variant:ConceptVa
         </div>
       </details>
       :<Link href="/concept/editorial">01 Editorial</Link>}
-    <Link className={variant==='retro'?styles.activeSwitch:''} href="/concept/retro-os">02 Career OS</Link>
+    {variant==='retro'&&onRetroTheme?
+      <details className={styles.conceptMenu}>
+        <summary className={styles.activeSwitch}><span>02 Career OS</span><small>{retroName}</small><ChevronDown size={13}/></summary>
+        <div className={styles.conceptDropdown}>
+          <div className={styles.conceptDropdownLabel}>CAREER OS VARIANTS</div>
+          {([['vapor','Vapor','Pastel retro-future desktop'],['classic','Classic','Beige Macintosh workstation'],['midnight','Midnight','After-hours terminal desktop']] as [RetroTheme,string,string][]).map(([key,label,desc],i)=>
+            <button key={key} aria-pressed={retroTheme===key} onClick={e=>{onRetroTheme(key);e.currentTarget.closest('details')?.removeAttribute('open')}}>
+              <i>{String(i+1).padStart(2,'0')}</i><span><b>{label}</b><small>{desc}</small></span>{retroTheme===key&&<Check size={13}/>}
+            </button>
+          )}
+        </div>
+      </details>
+      :<Link className={variant==='retro'?styles.activeSwitch:''} href="/concept/retro-os">02 Career OS</Link>}
     <Link className={variant==='brutalist'?styles.activeSwitch:''} href="/concept/brutalist">03 Loud</Link>
   </div>;
 }
@@ -316,36 +330,196 @@ function Window({title,children,className=''}:{title:string;children:React.React
   return <section className={[styles.osWindow,className].join(' ')}><div className={styles.osTitlebar}><span>□</span><strong>{title}</strong><div><i/><i/><i/></div></div><div className={styles.osBody}>{children}</div></section>;
 }
 
-function Retro({jobs}:{jobs:Job[]}){
+type RetroView='desktop'|'applications'|'pipeline'|'statistics';
+type RetroFilter='all'|'active'|'strong'|'interview'|'rejected';
+
+function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<boolean>;saving:boolean}){
   const m=useMetrics(jobs);
-  return <div className={styles.retro}>
-    <ConceptNav variant="retro"/>
-    <div className={styles.osMenu}><div><span className={styles.pixelLogo}>◈</span><b>CAREER_OS</b><span>File</span><span>View</span><span>Process</span><span>Help</span></div><div><span>DATA: ONLINE</span><span>SESSION 2026</span></div></div>
-    <div className={styles.desktop}>
-      <aside className={styles.desktopIcons}><div><span><Database size={24}/></span><small>Applications</small></div><div><span><FolderOpen size={24}/></span><small>Pipeline</small></div><div><span><FileText size={24}/></span><small>Reports</small></div></aside>
-      <Window title="APPLICATION_DATABASE.db" className={styles.osDatabase}>
-        <div className={styles.osHero}><div><span>RECORD COUNT</span><strong>{String(m.total).padStart(4,'0')}</strong></div><div className={styles.osMiniStats}><p><b>{String(m.active).padStart(2,'0')}</b><span>ACTIVE</span></p><p><b>{String(m.interviews).padStart(2,'0')}</b><span>INTERVIEWS</span></p><p><b>{String(m.offers).padStart(2,'0')}</b><span>OFFERS</span></p><p><b>{m.responseRate}%</b><span>RESPONSE</span></p></div></div>
-        <div className={styles.osStatusLine}><span>READY</span><span>{m.thisMonth} ADDED THIS MONTH</span></div>
-      </Window>
-      <Window title="PROCESS_MONITOR.exe" className={styles.osMonitor}>
-        <div className={styles.monitorHead}><TerminalSquare size={15}/><span>STAGE PROCESS TABLE</span></div>
-        {m.stages.map(s=><div className={styles.monitorRow} key={s.label}><span/><strong>{s.label}</strong><div><i style={{width:Math.max(5,s.count/Math.max(1,m.total)*100)+'%'}}/></div><b>{s.count}</b></div>)}
-      </Window>
-      <Window title="NEXT_ACTIONS.todo" className={styles.osActions}>
-        <div className={styles.todoToolbar}><button>☑ ALL</button><button>⚑ PRIORITY</button><span>{m.followups.length} ITEMS</span></div>
-        {m.followups.slice(0,6).map(a=><div className={styles.todoRow} key={a.id}><span/><div><strong>{a.nextAction}</strong><small>{a.company} / {a.role}</small></div><time>{a.dueDate?fmt(a.dueDate):'-- ---'}</time></div>)}
-        {!m.followups.length&&<div className={styles.osEmpty}>NO PENDING ACTIONS</div>}
-      </Window>
-      <Window title="RECENT_FILES" className={styles.osRecent}>
-        <div className={styles.fileListHead}><span>NAME</span><span>FIT</span><span>STATE</span><span>DATE</span></div>
-        {m.recent.map(a=><div className={styles.fileRow} key={a.id}><span><BriefcaseBusiness size={14}/><div><strong>{a.company}</strong><small>{a.role}</small></div></span><b>{a.score===null?'--':a.score.toFixed(1)}</b><em>{status(a).toUpperCase()}</em><time>{fmt(a.appliedDate)}</time></div>)}
-      </Window>
-      <div className={styles.osCursor}><MousePointer2 size={28}/></div>
+  const fileInput=useRef<HTMLInputElement>(null);
+  const [theme,setTheme]=useState<RetroTheme>('vapor');
+  const [view,setView]=useState<RetroView>('desktop');
+  const [query,setQuery]=useState('');
+  const [filter,setFilter]=useState<RetroFilter>('all');
+  const [selected,setSelected]=useState<Job|null>(null);
+  const [editing,setEditing]=useState<Job|null>(null);
+  const [adding,setAdding]=useState(false);
+  const [incoming,setIncoming]=useState<Job[]|null>(null);
+  const [importError,setImportError]=useState('');
+  const [deleteConfirm,setDeleteConfirm]=useState(false);
+  const [draft,setDraft]=useState({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});
+
+  useEffect(()=>{try{const saved=localStorage.getItem('career-tracker-retro-theme');if(saved==='vapor'||saved==='classic'||saved==='midnight')setTheme(saved)}catch{}},[]);
+  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key!=='Escape')return;if(editing){setEditing(null);return}if(selected){setSelected(null);setDeleteConfirm(false);return}if(adding){setAdding(false);return}if(incoming||importError){setIncoming(null);setImportError('')}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[editing,selected,adding,incoming,importError]);
+  function chooseTheme(next:RetroTheme){setTheme(next);try{localStorage.setItem('career-tracker-retro-theme',next)}catch{}}
+
+  const themeClass=theme==='classic'?styles.retroClassic:theme==='midnight'?styles.retroMidnight:styles.retroVapor;
+  const filtered=jobs.filter(a=>{
+    const text=(a.company+' '+a.role+' '+a.notes+' '+a.nextAction+' '+a.events.map(e=>e.type+' '+e.label+' '+e.notes).join(' ')).toLowerCase().includes(query.toLowerCase());
+    const pass=filter==='all'||(filter==='active'&&active(a))||(filter==='strong'&&a.score!==null&&a.score>=4)||(filter==='interview'&&reached(a,'Interview'))||(filter==='rejected'&&status(a)==='Rejected');
+    return text&&pass;
+  }).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate));
+  const byStage=m.stages.map(s=>({stage:s.label,jobs:jobs.filter(a=>status(a)===s.label).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate))}));
+
+  function exportJSON(){download(JSON.stringify({version:2,exportedAt:new Date().toISOString(),applications:jobs},null,2),'job_tracker_backup_'+today()+'.json')}
+  function exportCSV(){const rows=[['Company','Role','Applied','Current stage','Fit score','Next action','Due date','Notes'],...jobs.map(a=>[a.company,a.role,a.appliedDate,status(a),a.score??'',a.nextAction,a.dueDate,a.notes])];download(rows.map(r=>r.map(c=>'"'+String(c).replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n'),'job_applications_'+today()+'.csv','text/csv')}
+  async function readImport(file:File){setImportError('');try{setIncoming(parseBackup(JSON.parse(await file.text())))}catch(e){setImportError((e as Error).message)}if(fileInput.current)fileInput.current.value=''}
+  async function confirmImport(){if(!incoming)return;if(await persist(incoming)){setIncoming(null);setView('applications');setSelected(null)}}
+  function openJob(a:Job){setSelected(a);setEditing(null);setDeleteConfirm(false)}
+  function beginEdit(a:Job){setEditing(structuredClone(a))}
+  const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
+  const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
+  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:'Scheduled',notes:''}]}:null)}
+  function removeEditEvent(id:string){setEditing(d=>d?{...d,events:d.events.filter(e=>e.id!==id)}:null)}
+  async function saveEdit(e:FormEvent){e.preventDefault();if(!editing)return;const score=editing.score===null?null:Number(editing.score);if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};if(await persist(jobs.map(a=>a.id===updated.id?updated:a))){setSelected(updated);setEditing(null)}}
+  async function deleteApplication(){if(!selected)return;if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}}
+  async function addApplication(e:FormEvent){e.preventDefault();const score=draft.score===''?null:Number(draft.score);const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:[],nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};if(!job.company||!job.role||score!==null&&(score<0||score>5))return;if(await persist([job,...jobs])){setAdding(false);setDraft({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});setView('applications')}}
+
+  return <div className={[styles.retro,themeClass].join(' ')}>
+    <ConceptNav variant="retro" retroTheme={theme} onRetroTheme={chooseTheme}/>
+
+    <div className={styles.osMenu}>
+      <div><span className={styles.pixelLogo}>◈</span><b>CAREER_OS</b><span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span></div>
+      <div><span className={styles.osOnlineDot}/> <span>LOCAL DATABASE</span><span>SESSION 2026</span></div>
     </div>
-    <div className={styles.osTaskbar}><button>▣ START</button><span>career_tracker.exe</span><span>database.db</span><strong>● ONLINE</strong></div>
+
+    <div className={styles.retroDesktopShell}>
+      <div className={styles.vaporSky} aria-hidden="true"><i/><b/></div>
+      <aside className={styles.desktopIcons}>
+        <button onClick={()=>setView('applications')}><span><Database size={24}/></span><small>Applications</small></button>
+        <button onClick={()=>setView('pipeline')}><span><FolderOpen size={24}/></span><small>Pipeline</small></button>
+        <button onClick={()=>setView('statistics')}><span><FileText size={24}/></span><small>Reports</small></button>
+        <button onClick={exportJSON}><span><Download size={24}/></span><small>Backup</small></button>
+      </aside>
+
+      {view==='desktop'&&<div className={styles.desktop}>
+        <Window title="APPLICATION_DATABASE.db" className={styles.osDatabase}>
+          <div className={styles.osHero}><div><span>RECORD COUNT</span><strong>{String(m.total).padStart(4,'0')}</strong><small>CAREER ARCHIVE</small></div><div className={styles.osMiniStats}><p><b>{String(m.active).padStart(2,'0')}</b><span>ACTIVE</span></p><p><b>{String(m.interviews).padStart(2,'0')}</b><span>INTERVIEWS</span></p><p><b>{String(m.offers).padStart(2,'0')}</b><span>OFFERS</span></p><p><b>{m.responseRate}%</b><span>RESPONSE</span></p></div></div>
+          <div className={styles.osStatusLine}><span>READY</span><button onClick={()=>setAdding(true)}>＋ NEW RECORD</button><span>{m.thisMonth} ADDED THIS MONTH</span></div>
+        </Window>
+        <Window title="PROCESS_MONITOR.exe" className={styles.osMonitor}>
+          <div className={styles.monitorHead}><TerminalSquare size={15}/><span>STAGE PROCESS TABLE</span><button onClick={()=>setView('pipeline')}>OPEN ↗</button></div>
+          {m.stages.map(s=><button className={styles.monitorRow} key={s.label} onClick={()=>setView('pipeline')}><span/><strong>{s.label}</strong><div><i style={{width:Math.max(5,s.count/Math.max(1,m.total)*100)+'%'}}/></div><b>{s.count}</b></button>)}
+        </Window>
+        <Window title="RECENT_FILES" className={styles.osRecent}>
+          <div className={styles.fileListHead}><span>NAME</span><span>FIT</span><span>STATE</span><span>DATE</span></div>
+          {m.recent.map(a=><button className={styles.fileRow} key={a.id} onClick={()=>openJob(a)}><span><BriefcaseBusiness size={14}/><div><strong>{a.company}</strong><small>{a.role}</small></div></span><b>{a.score===null?'--':a.score.toFixed(1)}</b><em>{status(a).toUpperCase()}</em><time>{fmt(a.appliedDate)}</time></button>)}
+        </Window>
+        <Window title="NEXT_ACTIONS.todo" className={styles.osActions}>
+          <div className={styles.todoToolbar}><button>☑ ALL</button><button>⚑ PRIORITY</button><span>{m.followups.length} ITEMS</span></div>
+          {m.followups.slice(0,6).map(a=><button className={styles.todoRow} key={a.id} onClick={()=>openJob(a)}><span/><div><strong>{a.nextAction}</strong><small>{a.company} / {a.role}</small></div><time>{a.dueDate?fmt(a.dueDate):'-- ---'}</time></button>)}
+          {!m.followups.length&&<div className={styles.osEmpty}>NO PENDING ACTIONS</div>}
+        </Window>
+        <Window title="TODAY.widget" className={styles.osWidget}>
+          <div className={styles.osWidgetClock}><Clock3 size={16}/><span>CAREER DESKTOP</span></div><strong>{m.followups.length}</strong><small>ACTIONS IN QUEUE</small>
+        </Window>
+      </div>}
+
+      {view==='applications'&&<div className={styles.osWorkspace}>
+        <Window title="APPLICATIONS.FINDER" className={styles.osWorkspaceWindow}>
+          <div className={styles.osFinderToolbar}>
+            <button onClick={()=>setView('desktop')}>← DESKTOP</button>
+            <label><Search size={14}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search records…"/></label>
+            <button onClick={()=>fileInput.current?.click()}><Upload size={13}/> IMPORT</button>
+            <button onClick={exportCSV}><Download size={13}/> CSV</button>
+            <button className={styles.osPrimary} onClick={()=>setAdding(true)}><Plus size={13}/> NEW</button>
+          </div>
+          <div className={styles.osFilterbar}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['rejected','Rejected']] as [RetroFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}<span>{filtered.length} OF {m.total} RECORDS</span></div>
+          <div className={styles.osTable}>
+            <div className={styles.osTableHead}><span>NAME</span><span>FIT</span><span>STATE</span><span>APPLIED</span><span>NEXT</span></div>
+            {filtered.map(a=><button className={styles.osTableRow} key={a.id} onClick={()=>openJob(a)}><span><BriefcaseBusiness size={14}/><div><strong>{a.company}</strong><small>{a.role}</small></div></span><b>{a.score===null?'--':a.score.toFixed(1)}</b><em>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span>{a.nextAction||'Awaiting response'} <ArrowRight size={13}/></span></button>)}
+            {!filtered.length&&<div className={styles.osEmptyState}><strong>NO MATCHING FILES</strong><span>Try another search or filter.</span><button onClick={()=>{setQuery('');setFilter('all')}}>CLEAR FILTERS</button></div>}
+          </div>
+        </Window>
+      </div>}
+
+      {view==='pipeline'&&<div className={styles.osWorkspace}>
+        <Window title="PIPELINE_CONTROL_PANEL.exe" className={styles.osWorkspaceWindow}>
+          <div className={styles.osFinderToolbar}><button onClick={()=>setView('desktop')}>← DESKTOP</button><span className={styles.osToolbarTitle}>LIVE PROCESSES / {m.active}</span><button onClick={()=>setView('applications')}>DATABASE ↗</button></div>
+          <div className={styles.osPipelineBoard}>{byStage.filter(g=>g.jobs.length||['Applied','Interview','Offer'].includes(g.stage)).map((g,i)=><section key={g.stage} className={styles.osPipelineColumn}><div className={styles.osPipelineHead}><span>{String(i+1).padStart(2,'0')}</span><strong>{g.stage}</strong><b>{g.jobs.length}</b></div><div>{g.jobs.slice(0,10).map(a=><button key={a.id} className={styles.osPipelineCard} onClick={()=>openJob(a)}><div><strong>{a.company}</strong><span>{a.role}</span></div><footer><em>{a.score===null?'UNRATED':a.score.toFixed(1)+'/5'}</em><time>{fmt(a.appliedDate)}</time></footer></button>)}</div></section>)}</div>
+        </Window>
+      </div>}
+
+      {view==='statistics'&&<div className={styles.osWorkspace}>
+        <Window title="CAREER_REPORTS.app" className={styles.osWorkspaceWindow}>
+          <div className={styles.osFinderToolbar}><button onClick={()=>setView('desktop')}>← DESKTOP</button><span className={styles.osToolbarTitle}>SYSTEM REPORT / CURRENT DATABASE</span><button onClick={exportCSV}><Download size={13}/> EXPORT</button></div>
+          <div className={styles.osReportGrid}>
+            <div className={styles.osReportHero}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><div><i style={{width:m.responseRate+'%'}}/></div><small>{m.responses} replies from {m.total} applications</small></div>
+            <div className={styles.osReportHero}><span>INTERVIEW REACH</span><strong>{pct(m.interviews,m.total)}%</strong><div><i style={{width:pct(m.interviews,m.total)+'%'}}/></div><small>{m.interviews} applications reached interview</small></div>
+            <div className={styles.osReportPanel}><div className={styles.osPanelHeader}>STAGE DISTRIBUTION</div>{m.stages.map(s=><div className={styles.osReportRow} key={s.label}><span>{s.label}</span><i style={{width:Math.max(4,s.count/Math.max(1,...m.stages.map(x=>x.count))*100)+'%'}}/><b>{s.count}</b></div>)}</div>
+            <div className={styles.osReportPanel}><div className={styles.osPanelHeader}>DATABASE SUMMARY</div><div className={styles.osSummaryGrid}><div><strong>{m.active}</strong><span>ACTIVE</span></div><div><strong>{m.rejected}</strong><span>REJECTED</span></div><div><strong>{m.offers}</strong><span>OFFERS</span></div><div><strong>{m.strong}</strong><span>4.0+ FIT</span></div></div></div>
+          </div>
+        </Window>
+      </div>}
+
+      <input ref={fileInput} hidden type="file" accept="application/json,.json" onChange={e=>{const f=e.target.files?.[0];if(f)void readImport(f)}}/>
+    </div>
+
+    <div className={styles.osTaskbar}>
+      <button className={view==='desktop'?styles.osTaskActive:''} onClick={()=>setView('desktop')}>▣ DESKTOP</button>
+      <button className={view==='applications'?styles.osTaskActive:''} onClick={()=>setView('applications')}>database.db</button>
+      <button className={view==='pipeline'?styles.osTaskActive:''} onClick={()=>setView('pipeline')}>pipeline.exe</button>
+      <button className={view==='statistics'?styles.osTaskActive:''} onClick={()=>setView('statistics')}>reports.app</button>
+      <span className={styles.osTaskSpacer}/>
+      <button onClick={exportJSON}>BACKUP</button>
+      <button className={styles.osAddTask} onClick={()=>setAdding(true)}>＋ ADD</button>
+      <strong><span className={styles.osOnlineDot}/> ONLINE</strong>
+    </div>
+
+    {selected&&<div className={styles.osOverlay} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target){setSelected(null);setEditing(null);setDeleteConfirm(false)}}}>
+      <div className={styles.osDialog} role="dialog" aria-modal="true">
+        <div className={styles.osDialogTitle}><span>APPLICATION_INFO</span><button aria-label="Close application details" onClick={()=>{setSelected(null);setEditing(null);setDeleteConfirm(false)}}>×</button></div>
+        {!editing?<>
+          <div className={styles.osDialogBody}>
+            <div className={styles.osFileIdentity}><div className={styles.osFileIcon}><BriefcaseBusiness size={28}/></div><div><span>APPLICATION RECORD</span><h2>{selected.company}</h2><p>{selected.role}</p></div></div>
+            <div className={styles.osInfoStrip}><div><span>FIT</span><b>{selected.score===null?'—':selected.score.toFixed(1)}</b></div><div><span>STATE</span><b>{status(selected)}</b></div><div><span>APPLIED</span><b>{fmt(selected.appliedDate)}</b></div></div>
+            <section><div className={styles.osSectionTitle}>PROCESS LOG</div><div className={styles.osTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{e.state} · {e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
+            <section><div className={styles.osSectionTitle}>NEXT ACTION</div><p>{selected.nextAction||'No next action set.'}</p>{selected.dueDate&&<time>{fmt(selected.dueDate)}</time>}</section>
+            <section><div className={styles.osSectionTitle}>NOTES</div><p>{selected.notes||'No notes yet.'}</p></section>
+          </div>
+          <div className={styles.osDialogActions}>
+            {selected.url&&<a href={selected.url} target="_blank" rel="noreferrer">OPEN JOB ↗</a>}
+            {!deleteConfirm?<button onClick={()=>setDeleteConfirm(true)}><Trash2 size={13}/> DELETE</button>:<><span>DELETE RECORD?</span><button onClick={()=>setDeleteConfirm(false)}>NO</button><button className={styles.osDanger} onClick={deleteApplication} disabled={saving}>YES, DELETE</button></>}
+            <button className={styles.osPrimary} onClick={()=>beginEdit(selected)}><Pencil size={13}/> EDIT</button>
+          </div>
+        </>:<form className={styles.osEditForm} onSubmit={saveEdit}>
+          <div className={styles.osFormGrid}><label>COMPANY<input required value={editing.company} onChange={e=>editField('company',e.target.value)}/></label><label>ROLE<input required value={editing.role} onChange={e=>editField('role',e.target.value)}/></label></div>
+          <div className={styles.osFormGrid}><label>APPLIED<input type="date" value={editing.appliedDate} onChange={e=>editField('appliedDate',e.target.value)}/></label><label>FIT / 5<input type="number" min="0" max="5" step=".1" value={editing.score??''} onChange={e=>editField('score',e.target.value===''?null:Number(e.target.value))}/></label></div>
+          <label>JOB URL<input type="url" value={editing.url} onChange={e=>editField('url',e.target.value)}/></label>
+          <div className={styles.osFormGrid}><label>NEXT ACTION<input value={editing.nextAction} onChange={e=>editField('nextAction',e.target.value)}/></label><label>DUE DATE<input type="date" value={editing.dueDate} onChange={e=>editField('dueDate',e.target.value)}/></label></div>
+          <label>NOTES<textarea rows={5} value={editing.notes} onChange={e=>editField('notes',e.target.value)}/></label>
+          <div className={styles.osTimelineEditorHead}><span>PROCESS LOG</span><button type="button" onClick={addEditEvent}>＋ ADD EVENT</button></div>
+          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select value={event.type} onChange={e=>editEvent(event.id,'type',e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select><select value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select><input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
+          <div className={styles.osDialogActions}><button type="button" onClick={()=>setEditing(null)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'SAVE CHANGES'}</button></div>
+        </form>}
+      </div>
+    </div>}
+
+    {adding&&<div className={styles.osOverlay} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)setAdding(false)}}>
+      <form className={styles.osDialog} onSubmit={addApplication}>
+        <div className={styles.osDialogTitle}><span>NEW_APPLICATION.wiz</span><button type="button" onClick={()=>setAdding(false)}>×</button></div>
+        <div className={styles.osEditForm}>
+          <div className={styles.osFormGrid}><label>COMPANY<input required value={draft.company} onChange={e=>setDraft({...draft,company:e.target.value})}/></label><label>ROLE<input required value={draft.role} onChange={e=>setDraft({...draft,role:e.target.value})}/></label></div>
+          <div className={styles.osFormGrid}><label>APPLIED<input type="date" value={draft.appliedDate} onChange={e=>setDraft({...draft,appliedDate:e.target.value})}/></label><label>FIT / 5<input type="number" min="0" max="5" step=".1" value={draft.score} onChange={e=>setDraft({...draft,score:e.target.value})}/></label></div>
+          <label>JOB URL<input type="url" value={draft.url} onChange={e=>setDraft({...draft,url:e.target.value})}/></label>
+          <div className={styles.osFormGrid}><label>NEXT ACTION<input value={draft.nextAction} onChange={e=>setDraft({...draft,nextAction:e.target.value})}/></label><label>DUE DATE<input type="date" value={draft.dueDate} onChange={e=>setDraft({...draft,dueDate:e.target.value})}/></label></div>
+          <label>NOTES<textarea rows={5} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>
+          <div className={styles.osDialogActions}><button type="button" onClick={()=>setAdding(false)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'CREATE RECORD'}</button></div>
+        </div>
+      </form>
+    </div>}
+
+    {(incoming||importError)&&<div className={styles.osOverlay} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target){setIncoming(null);setImportError('')}}}>
+      <div className={[styles.osDialog,styles.osImportDialog].join(' ')}>
+        <div className={styles.osDialogTitle}><span>IMPORT_BACKUP.alert</span><button onClick={()=>{setIncoming(null);setImportError('')}}>×</button></div>
+        <div className={styles.osDialogBody}>
+          <h2>{importError?'IMPORT ERROR':'REPLACE DATABASE?'}</h2>
+          {importError?<p>{importError}</p>:<p>The selected backup contains <b>{incoming?.length}</b> applications. It will replace the <b>{jobs.length}</b> records in this local database.</p>}
+        </div>
+        <div className={styles.osDialogActions}><button onClick={()=>{setIncoming(null);setImportError('')}}>CANCEL</button>{incoming&&<button className={styles.osPrimary} onClick={confirmImport} disabled={saving}>{saving?'IMPORTING…':'IMPORT & REPLACE'}</button>}</div>
+      </div>
+    </div>}
   </div>;
 }
-
 function Brutalist({jobs}:{jobs:Job[]}){
   const m=useMetrics(jobs);
   return <div className={styles.brutalist}>
@@ -375,6 +549,6 @@ export default function ConceptDashboard({variant}:{variant:ConceptVariant}){
   const {jobs,loading,error,saving,persist}=useTracker();
   if(loading||error)return <Loading variant={variant} error={error}/>;
   if(variant==='editorial')return <Editorial jobs={jobs} persist={persist} saving={saving}/>;
-  if(variant==='retro')return <Retro jobs={jobs}/>;
+  if(variant==='retro')return <Retro jobs={jobs} persist={persist} saving={saving}/>;
   return <Brutalist jobs={jobs}/>;
 }
