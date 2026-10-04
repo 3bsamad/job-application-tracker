@@ -14,7 +14,7 @@ export async function GET(){
     const d=await ensureTracker();
     const row=await d.prepare('SELECT data,revision FROM tracker WHERE id=1').first<{data:string;revision:number}>();
     if(!row)return Response.json({applications:[],revision:0},{headers:{'Cache-Control':'no-store'}});
-    return Response.json({applications:JSON.parse(row.data),revision:row.revision},{headers:{'Cache-Control':'no-store'}});
+    return Response.json({applications:parseBackup(JSON.parse(row.data)),revision:row.revision},{headers:{'Cache-Control':'no-store'}});
   }catch(e){
     console.error(e);
     return Response.json({error:'Could not load your applications. Please retry.'},{status:503});
