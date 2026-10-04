@@ -95,7 +95,7 @@ function ConceptNav({variant,editorialTheme,onEditorialTheme,retroTheme,onRetroT
   const themeName=editorialTheme==='archive'?'Archive':editorialTheme==='night'?'Night':'Signal';
   const retroName=retroTheme==='classic'?'Classic':retroTheme==='midnight'?'Midnight':'Vapor';
   return <div className={styles.switcher}>
-    <Link href="/" title="Original tracker design">00 Studio</Link>
+    <Link href="/studio" title="Studio tracker design" onClick={()=>{try{localStorage.setItem('career-tracker-style','studio')}catch{}}}>00 Studio</Link>
     <span>Styles</span>
     {variant==='editorial'&&onEditorialTheme?
       <details className={styles.conceptMenu}>
@@ -109,7 +109,7 @@ function ConceptNav({variant,editorialTheme,onEditorialTheme,retroTheme,onRetroT
           )}
         </div>
       </details>
-      :<Link href="/concept/editorial">01 Editorial</Link>}
+      :<Link href="/" onClick={()=>{try{localStorage.setItem('career-tracker-style','editorial')}catch{}}}>01 Editorial</Link>}
     {variant==='retro'&&onRetroTheme?
       <details className={styles.conceptMenu}>
         <summary className={styles.activeSwitch}><span>02 Career OS</span><small>{retroName}</small><ChevronDown size={13}/></summary>
@@ -122,8 +122,8 @@ function ConceptNav({variant,editorialTheme,onEditorialTheme,retroTheme,onRetroT
           )}
         </div>
       </details>
-      :<Link className={variant==='retro'?styles.activeSwitch:''} href="/concept/retro-os">02 Career OS</Link>}
-    <Link className={variant==='brutalist'?styles.activeSwitch:''} href="/concept/brutalist">03 Loud</Link>
+      :<Link className={variant==='retro'?styles.activeSwitch:''} href="/concept/retro-os" onClick={()=>{try{localStorage.setItem('career-tracker-style','retro')}catch{}}}>02 Career OS</Link>}
+    <Link className={variant==='brutalist'?styles.activeSwitch:''} href="/concept/brutalist" onClick={()=>{try{localStorage.setItem('career-tracker-style','brutalist')}catch{}}}>03 Loud</Link>
   </div>;
 }
 function Loading({variant,error}:{variant:ConceptVariant;error:string}){
@@ -603,6 +603,7 @@ function Brutalist({jobs}:{jobs:Job[]}){
 }
 
 export default function ConceptDashboard({variant}:{variant:ConceptVariant}){
+  useEffect(()=>{try{localStorage.setItem('career-tracker-style',variant)}catch{}},[variant]);
   const {jobs,loading,error,saving,persist}=useTracker();
   if(loading||error)return <Loading variant={variant} error={error}/>;
   if(variant==='editorial')return <Editorial jobs={jobs} persist={persist} saving={saving}/>;
