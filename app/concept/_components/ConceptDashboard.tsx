@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2} from 'lucide-react';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
 import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,states} from '@/lib/model';
 import styles from '../concept.module.css';
 
@@ -74,15 +74,30 @@ function useMetrics(jobs:Job[]){
   },[jobs]);
 }
 
-function ConceptNav({variant}:{variant:ConceptVariant}){
+type EditorialTheme='archive'|'signal'|'night';
+
+function ConceptNav({variant,editorialTheme,onEditorialTheme}:{variant:ConceptVariant;editorialTheme?:EditorialTheme;onEditorialTheme?:(theme:EditorialTheme)=>void}){
+  const themeName=editorialTheme==='archive'?'Archive':editorialTheme==='night'?'Night':'Signal';
   return <div className={styles.switcher}>
-    <Link href="/">Current app</Link><span>Concepts</span>
-    <Link className={variant==='editorial'?styles.activeSwitch:''} href="/concept/editorial">01 Editorial</Link>
+    <Link href="/" title="Original tracker design">00 Studio</Link>
+    <span>Styles</span>
+    {variant==='editorial'&&onEditorialTheme?
+      <details className={styles.conceptMenu}>
+        <summary className={styles.activeSwitch}><span>01 Editorial</span><small>{themeName}</small><ChevronDown size={13}/></summary>
+        <div className={styles.conceptDropdown}>
+          <div className={styles.conceptDropdownLabel}>EDITORIAL VARIANTS</div>
+          {([['signal','Signal','Color-forward editorial'],['night','Night','Dark publication'],['archive','Archive','Quiet paper system']] as [EditorialTheme,string,string][]).map(([key,label,desc],i)=>
+            <button key={key} aria-pressed={editorialTheme===key} onClick={e=>{onEditorialTheme(key);e.currentTarget.closest('details')?.removeAttribute('open')}}>
+              <i>{String(i+1).padStart(2,'0')}</i><span><b>{label}</b><small>{desc}</small></span>{editorialTheme===key&&<Check size={13}/>}
+            </button>
+          )}
+        </div>
+      </details>
+      :<Link href="/concept/editorial">01 Editorial</Link>}
     <Link className={variant==='retro'?styles.activeSwitch:''} href="/concept/retro-os">02 Career OS</Link>
     <Link className={variant==='brutalist'?styles.activeSwitch:''} href="/concept/brutalist">03 Loud</Link>
   </div>;
 }
-
 function Loading({variant,error}:{variant:ConceptVariant;error:string}){
   return <div className={styles.loading}><ConceptNav variant={variant}/><div className={styles.loadingBox}><span>{error?'DATA ERROR':'LOADING APPLICATION DATABASE'}</span><strong>{error||'…'}</strong></div></div>;
 }
@@ -91,7 +106,6 @@ function HeaderIndex({no,label,tail}:{no:string;label:string;tail:string}){
   return <div className={styles.sectionIndex}><span>{no}</span><span>{label}</span><span>{tail}</span></div>;
 }
 
-type EditorialTheme='archive'|'signal'|'night';
 type EditorialView='overview'|'applications'|'pipeline'|'statistics';
 type ArchiveFilter='all'|'active'|'strong'|'interview'|'rejected';
 
@@ -99,6 +113,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const m=useMetrics(jobs);
   const fileInput=useRef<HTMLInputElement>(null);
   const [theme,setTheme]=useState<EditorialTheme>('signal');
+  const [deleteConfirm,setDeleteConfirm]=useState(false);
   const [view,setView]=useState<EditorialView>('overview');
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState<ArchiveFilter>('all');
@@ -108,6 +123,9 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const [incoming,setIncoming]=useState<Job[]|null>(null);
   const [importError,setImportError]=useState('');
   const [draft,setDraft]=useState({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});
+  useEffect(()=>{try{const saved=localStorage.getItem('career-tracker-editorial-theme');if(saved==='archive'||saved==='signal'||saved==='night')setTheme(saved)}catch{}},[]);
+  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key!=='Escape')return;if(editing){setEditing(null);return}if(selected){setSelected(null);setDeleteConfirm(false);return}if(adding){setAdding(false);return}if(incoming||importError){setIncoming(null);setImportError('')}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[editing,selected,adding,incoming,importError]);
+  function chooseTheme(next:EditorialTheme){setTheme(next);try{localStorage.setItem('career-tracker-editorial-theme',next)}catch{}}
 
   const themeClass=theme==='signal'?styles.themeSignal:theme==='night'?styles.themeNight:styles.themeArchive;
   const themeLabel=theme==='signal'?'SIGNAL EDITION':theme==='night'?'NIGHT PRESS':'ARCHIVE EDITION';
@@ -138,7 +156,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
     if(!incoming)return;
     if(await persist(incoming)){setIncoming(null);setView('applications');setSelected(null)}
   }
-  function openJob(a:Job){setSelected(a);setEditing(null)}
+  function openJob(a:Job){setSelected(a);setEditing(null);setDeleteConfirm(false)}
   function beginEdit(a:Job){setEditing(structuredClone(a))}
   const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
   const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
@@ -153,7 +171,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   }
   async function deleteApplication(){
     if(!selected)return;
-    if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null)}
+    if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}
   }
   async function addApplication(e:FormEvent){
     e.preventDefault();
@@ -164,7 +182,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   }
 
   return <div className={[styles.editorial,themeClass].join(' ')}>
-    <ConceptNav variant="editorial"/>
+    <ConceptNav variant="editorial" editorialTheme={theme} onEditorialTheme={chooseTheme}/>
 
     <div className={styles.editorialMasthead}>
       <span>CAREER INDEX®</span><span>PERSONAL EDITION / 2026</span><span>{m.total.toString().padStart(4,'0')} RECORDS</span>
@@ -178,9 +196,6 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
             <button key={key} aria-current={view===key?'page':undefined} onClick={()=>setView(key)}><i>{String(i+1).padStart(2,'0')}</i>{label}</button>
           )}
         </nav>
-        <div className={styles.editorialThemes} aria-label="Editorial visual theme">
-          {(['archive','signal','night'] as EditorialTheme[]).map((t,i)=><button key={t} aria-pressed={theme===t} onClick={()=>setTheme(t)} title={t+' theme'}><i>{String(i+1).padStart(2,'0')}</i><span>{t==='archive'?'Archive':t==='signal'?'Signal':'Night'}</span></button>)}
-        </div>
       </div>
 
       <div className={styles.editorialTitleRow}>
@@ -222,6 +237,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
       <section className={styles.archiveTable}>
         <div className={styles.archiveHead}><span>NO.</span><span>COMPANY / ROLE</span><span>FIT</span><span>STAGE</span><span>APPLIED</span><span>NEXT</span></div>
         {filtered.map((a,i)=><button key={a.id} className={styles.archiveRow} onClick={()=>openJob(a)}><span>{String(i+1).padStart(3,'0')}</span><span><strong>{a.company}</strong><small>{a.role}</small></span><b>{a.score===null?'—':a.score.toFixed(1)}</b><em>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span><small>{a.nextAction||'Awaiting response'}</small><ArrowRight size={14}/></span></button>)}
+        {!filtered.length&&<div className={styles.archiveEmpty}><strong>No matching applications.</strong><span>Try another search or clear the active filter.</span><button onClick={()=>{setQuery('');setFilter('all')}}>CLEAR FILTERS</button></div>}
       </section>
     </div>}
 
@@ -236,17 +252,26 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
 
     {selected&&<div className={styles.editorialOverlay} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target){setSelected(null);setEditing(null)}}}>
       <aside className={styles.editorialDetail} role="dialog" aria-modal="true" aria-label={selected.company}>
-        <button className={styles.detailClose} onClick={()=>{setSelected(null);setEditing(null)}}><X size={17}/></button>
         {!editing?<>
-          <div className={styles.detailTopline}><div className={styles.detailIndex}>APPLICATION / {selected.id.slice(0,6).toUpperCase()}</div><button className={styles.detailEdit} onClick={()=>beginEdit(selected)}><Pencil size={12}/> EDIT RECORD</button></div>
+          <div className={styles.detailTopline}>
+            <div className={styles.detailIndex}>APPLICATION / {selected.id.slice(0,6).toUpperCase()}</div>
+            <div className={styles.detailHeaderActions}>
+              <button className={styles.detailEdit} onClick={()=>beginEdit(selected)}><Pencil size={12}/> EDIT RECORD</button>
+              <button className={styles.detailCloseInline} aria-label="Close application details" onClick={()=>{setSelected(null);setDeleteConfirm(false)}}><X size={17}/></button>
+            </div>
+          </div>
           <h2>{selected.company}</h2><p className={styles.detailRole}>{selected.role}</p>
           <div className={styles.detailMeta}><span><small>FIT</small><b>{selected.score===null?'—':selected.score.toFixed(1)}</b></span><span><small>STAGE</small><b>{status(selected)}</b></span><span><small>APPLIED</small><b>{fmt(selected.appliedDate)}</b></span></div>
           <section><h3>PROCESS</h3><div className={styles.detailTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{e.state} · {e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
           <section><h3>NEXT ACTION</h3><p>{selected.nextAction||'No next action set.'}</p>{selected.dueDate&&<time>{fmt(selected.dueDate)}</time>}</section>
           <section><h3>NOTES</h3><p>{selected.notes||'No notes yet.'}</p></section>
-          <div className={styles.detailBottomActions}>{selected.url&&<a className={styles.detailLink} href={selected.url} target="_blank" rel="noreferrer">OPEN JOB POSTING <ArrowUpRight size={14}/></a>}<button className={styles.detailDelete} onClick={deleteApplication} disabled={saving}><Trash2 size={13}/> DELETE</button></div>
+          <div className={styles.detailBottomActions}>
+            {selected.url&&<a className={styles.detailLink} href={selected.url} target="_blank" rel="noreferrer">OPEN JOB POSTING <ArrowUpRight size={14}/></a>}
+            {!deleteConfirm?<button className={styles.detailDelete} onClick={()=>setDeleteConfirm(true)} disabled={saving}><Trash2 size={13}/> DELETE</button>:
+              <div className={styles.deleteConfirm}><span>DELETE THIS RECORD?</span><button onClick={()=>setDeleteConfirm(false)}>CANCEL</button><button onClick={deleteApplication} disabled={saving}>{saving?'DELETING…':'CONFIRM'}</button></div>}
+          </div>
         </>:<form className={styles.detailEditForm} onSubmit={saveEdit}>
-          <div className={styles.detailIndex}>EDITING / {editing.id.slice(0,6).toUpperCase()}</div><h2>Edit application</h2>
+          <div className={styles.detailTopline}><div className={styles.detailIndex}>EDITING / {editing.id.slice(0,6).toUpperCase()}</div><button type="button" className={styles.detailCloseInline} aria-label="Close application details" onClick={()=>{setSelected(null);setEditing(null)}}><X size={17}/></button></div><h2>Edit application</h2>
           <div className={styles.addGrid}><label>COMPANY<input required value={editing.company} onChange={e=>editField('company',e.target.value)}/></label><label>ROLE<input required value={editing.role} onChange={e=>editField('role',e.target.value)}/></label></div>
           <div className={styles.addGrid}><label>APPLIED<input type="date" value={editing.appliedDate} onChange={e=>editField('appliedDate',e.target.value)}/></label><label>FIT / 5<input type="number" min="0" max="5" step=".1" value={editing.score??''} onChange={e=>editField('score',e.target.value===''?null:Number(e.target.value))}/></label></div>
           <label>JOB URL<input type="url" value={editing.url} onChange={e=>editField('url',e.target.value)}/></label>
