@@ -3,7 +3,7 @@
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
-import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
+import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventStateOptions,eventStateLabel} from '@/lib/model';
 import {useTrackerData} from '@/hooks/use-tracker-data';
 import {buildTrackerAnalytics,localISODate,percentNumber} from '@/lib/tracker-analytics';
 import {backupFilename,backupJSON,downloadText,simpleCSV} from '@/lib/tracker-export';
