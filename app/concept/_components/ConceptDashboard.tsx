@@ -113,6 +113,16 @@ function ConceptNav({variant,editorialTheme,onEditorialTheme,retroTheme,onRetroT
   </div>;
 }
 function Loading({variant,error}:{variant:ConceptVariant;error:string}){
+  if(variant==='editorial')return <div className={styles.editorialLoading}>
+    <ConceptNav variant={variant}/>
+    <div className={styles.editorialLoadingShell}>
+      <div className={styles.editorialLoadingMast}><span>CAREER INDEX®</span><span>{error?'SYSTEM NOTICE':'OPENING EDITION'}</span></div>
+      <div className={styles.editorialLoadingGrid}>
+        <div><span>{error?'DATA ERROR':'LOCAL DATABASE'}</span><strong>{error?'Unable to open the archive.':'Preparing your career index…'}</strong><p>{error||'Loading applications, pipeline and search signals.'}</p>{error&&<button onClick={()=>window.location.reload()}>RETRY CONNECTION</button>}</div>
+        <div aria-hidden="true"><i/><i/><i/><i/></div>
+      </div>
+    </div>
+  </div>;
   return <div className={styles.loading}><ConceptNav variant={variant}/><div className={styles.loadingBox}><span>{error?'DATA ERROR':'LOADING APPLICATION DATABASE'}</span><strong>{error||'…'}</strong></div></div>;
 }
 
@@ -137,7 +147,9 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const [incoming,setIncoming]=useState<Job[]|null>(null);
   const [importError,setImportError]=useState('');
   const [draft,setDraft]=useState({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});
+  const overlayOpen=Boolean(selected||adding||incoming||importError);
   useEffect(()=>{try{const saved=localStorage.getItem('career-tracker-editorial-theme');if(saved==='archive'||saved==='signal'||saved==='night')setTheme(saved)}catch{}},[]);
+  useEffect(()=>{if(!overlayOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.body.style.overflow=previous}},[overlayOpen]);
   useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key!=='Escape')return;if(editing){setEditing(null);return}if(selected){setSelected(null);setDeleteConfirm(false);return}if(adding){setAdding(false);return}if(incoming||importError){setIncoming(null);setImportError('')}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[editing,selected,adding,incoming,importError]);
   function chooseTheme(next:EditorialTheme){setTheme(next);try{localStorage.setItem('career-tracker-editorial-theme',next)}catch{}}
 
@@ -195,7 +207,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
     if(await persist([job,...jobs])){setAdding(false);setDraft({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});setView('applications')}
   }
 
-  return <div className={[styles.editorial,themeClass].join(' ')}>
+  return <div className={[styles.editorial,themeClass].join(' ')} aria-busy={saving}>
     <ConceptNav variant="editorial" editorialTheme={theme} onEditorialTheme={chooseTheme}/>
 
     <div className={styles.editorialMasthead}>
@@ -246,7 +258,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
     </div>}
 
     {view==='applications'&&<div className={styles.editorialWorkspace}>
-      <div className={styles.workspaceToolbar}><label className={styles.editorialSearch}><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role, notes…"/></label><span>{filtered.length} / {m.total} RECORDS</span><button className={styles.editorialPrimary} onClick={()=>setAdding(true)}><Plus size={14}/> ADD APPLICATION</button></div>
+      <div className={styles.workspaceToolbar}><label className={styles.editorialSearch}><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role, notes…"/></label><span>{filtered.length} / {m.total} RECORDS</span><button className={styles.editorialPrimary} disabled={saving} onClick={()=>setAdding(true)}><Plus size={14}/> ADD APPLICATION</button></div>
       <div className={styles.archiveFilters}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['rejected','Rejected']] as [ArchiveFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
       <section className={styles.archiveTable}>
         <div className={styles.archiveHead}><span>NO.</span><span>COMPANY / ROLE</span><span>FIT</span><span>STAGE</span><span>APPLIED</span><span>NEXT</span></div>
