@@ -3,90 +3,17 @@
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
-import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
+import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
+import {useTrackerData} from '@/hooks/use-tracker-data';
+import {buildTrackerAnalytics,localISODate,percentNumber} from '@/lib/tracker-analytics';
+import {backupFilename,backupJSON,downloadText,simpleCSV} from '@/lib/tracker-export';
 import styles from '../concept.module.css';
 
 export type ConceptVariant='editorial'|'retro'|'brutalist';
-type TrackerResponse={applications:Job[];revision:number;error?:string};
-
-const today=()=>new Date().toLocaleDateString('en-CA');
-const pct=(a:number,b:number)=>b?Math.round(a/b*100):0;
+const today=localISODate;
+const pct=percentNumber;
 const fmt=(s:string)=>s?new Date(s+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'—';
-function download(data:string,name:string,type='application/json'){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-
-function useTracker(){
-  const [jobs,setJobs]=useState<Job[]>([]);
-  const [revision,setRevision]=useState(0);
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [error,setError]=useState('');
-  useEffect(()=>{
-    let mounted=true;
-    (async()=>{
-      try{
-        const r=await fetch('/api/tracker');
-        const d=await r.json() as TrackerResponse;
-        if(!r.ok)throw new Error(d.error||'Could not load tracker data.');
-        if(mounted){setJobs(d.applications);setRevision(d.revision)}
-      }catch(e){if(mounted)setError((e as Error).message)}
-      finally{if(mounted)setLoading(false)}
-    })();
-    return()=>{mounted=false};
-  },[]);
-  async function persist(next:Job[]){
-    setSaving(true);setError('');
-    try{
-      const r=await fetch('/api/tracker',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({applications:next,revision})});
-      const d=await r.json() as TrackerResponse;
-      if(!r.ok)throw new Error(d.error||'Could not save tracker data.');
-      setJobs(next);setRevision(d.revision);return true;
-    }catch(e){setError((e as Error).message);return false}
-    finally{setSaving(false)}
-  }
-  return {jobs,loading,error,saving,persist};
-}
-
-function useMetrics(jobs:Job[]){
-  return useMemo(()=>{
-    const total=jobs.length;
-    const responses=jobs.filter(replied);
-    const activeJobs=jobs.filter(active);
-    const interviews=jobs.filter(a=>reached(a,'Interview'));
-    const offers=jobs.filter(a=>reached(a,'Offer')||status(a)==='Offer'||status(a)==='Accepted');
-    const rejected=jobs.filter(a=>status(a)==='Rejected');
-    const withdrawn=jobs.filter(a=>status(a)==='Withdrawn');
-    const accepted=jobs.filter(a=>status(a)==='Accepted');
-    const rated=jobs.filter(a=>a.score!==null);
-    const strong=jobs.filter(a=>a.score!==null&&a.score>=4);
-    const screening=jobs.filter(a=>reached(a,'Screening call'));
-    const assessments=jobs.filter(a=>reached(a,'Technical assessment'));
-    const rejectedAfterInterview=rejected.filter(a=>reached(a,'Interview')).length;
-    const withdrawnAfterInterview=withdrawn.filter(a=>reached(a,'Interview')).length;
-    const rejectedAfterAssessment=rejected.filter(a=>reached(a,'Technical assessment')&&!reached(a,'Interview')).length;
-    const withdrawnAfterAssessment=withdrawn.filter(a=>reached(a,'Technical assessment')&&!reached(a,'Interview')).length;
-    const month=today().slice(0,7);
-    const thisMonth=jobs.filter(a=>a.appliedDate.startsWith(month)).length;
-    const dated=jobs.map(a=>a.appliedDate).filter(Boolean).sort();
-    const earliest=dated[0]||'';
-    const latest=dated.at(-1)||'';
-    const currentDay=today();
-    const elapsedDays=earliest?Math.max(1,Math.floor((Date.parse(currentDay+'T12:00:00')-Date.parse(earliest+'T12:00:00'))/86400000)+1):0;
-    const dailyAverage=elapsedDays?(jobs.filter(a=>a.appliedDate&&a.appliedDate<=currentDay).length/elapsedDays).toFixed(1):'—';
-    const followups=jobs.filter(a=>active(a)&&a.nextAction).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
-    const recent=[...jobs].sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate)).slice(0,6);
-    const stages=['Applied','In review','Screening call','Technical assessment','Interview','Offer','Accepted','Rejected','Withdrawn']
-      .map(label=>({label,count:jobs.filter(a=>status(a)===label).length}))
-      .filter(x=>x.count>0||['Applied','Interview','Offer'].includes(x.label));
-    const daily=Array.from({length:14},(_,i)=>{
-      const d=new Date(today()+'T12:00:00');
-      d.setDate(d.getDate()-13+i);
-      const key=d.toLocaleDateString('en-CA');
-      return {key,label:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),count:jobs.filter(a=>a.appliedDate===key).length};
-    });
-    const maxDaily=Math.max(1,...daily.map(x=>x.count));
-    return {total,responses:responses.length,responseRate:pct(responses.length,total),active:activeJobs.length,interviews:interviews.length,offers:offers.length,rejected:rejected.length,withdrawn:withdrawn.length,accepted:accepted.length,rated:rated.length,strong:strong.length,screening:screening.length,assessments:assessments.length,rejectedAfterInterview,withdrawnAfterInterview,rejectedAfterAssessment,withdrawnAfterAssessment,thisMonth,earliest,latest,dailyAverage,followups,recent,stages,daily,maxDaily};
-  },[jobs]);
-}
+const useMetrics=(jobs:Job[])=>useMemo(()=>buildTrackerAnalytics(jobs,14),[jobs]);
 
 type EditorialTheme='archive'|'signal'|'night';
 type RetroTheme='vapor'|'classic'|'midnight';
@@ -182,11 +109,8 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
     {label:'Low',range:'< 3.0',count:jobs.filter(a=>a.score!==null&&a.score<3).length},
   ];
 
-  function exportJSON(){download(JSON.stringify({version:2,exportedAt:new Date().toISOString(),applications:jobs},null,2),'job_tracker_backup_'+today()+'.json')}
-  function exportCSV(){
-    const rows=[['Company','Role','Applied','Current stage','Fit score','Next action','Due date','Notes'],...jobs.map(a=>[a.company,a.role,a.appliedDate,status(a),a.score??'',a.nextAction,a.dueDate,a.notes])];
-    download(rows.map(r=>r.map(c=>'"'+String(c).replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n'),'job_applications_'+today()+'.csv','text/csv');
-  }
+  function exportJSON(){downloadText(backupJSON(jobs),backupFilename())}
+  function exportCSV(){downloadText(simpleCSV(jobs),'job_applications_'+today()+'.csv','text/csv')}
   async function readImport(file:File){
     setImportError('');
     try{setIncoming(parseBackup(JSON.parse(await file.text())))}catch(e){setImportError((e as Error).message)}
@@ -416,8 +340,8 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   }).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate));
   const byStage=m.stages.map(s=>({stage:s.label,jobs:jobs.filter(a=>status(a)===s.label).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate))}));
 
-  function exportJSON(){download(JSON.stringify({version:2,exportedAt:new Date().toISOString(),applications:jobs},null,2),'job_tracker_backup_'+today()+'.json')}
-  function exportCSV(){const rows=[['Company','Role','Applied','Current stage','Fit score','Next action','Due date','Notes'],...jobs.map(a=>[a.company,a.role,a.appliedDate,status(a),a.score??'',a.nextAction,a.dueDate,a.notes])];download(rows.map(r=>r.map(c=>'"'+String(c).replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n'),'job_applications_'+today()+'.csv','text/csv')}
+  function exportJSON(){downloadText(backupJSON(jobs),backupFilename())}
+  function exportCSV(){downloadText(simpleCSV(jobs),'job_applications_'+today()+'.csv','text/csv')}
   async function readImport(file:File){setImportError('');try{setIncoming(parseBackup(JSON.parse(await file.text())))}catch(e){setImportError((e as Error).message)}if(fileInput.current)fileInput.current.value=''}
   async function confirmImport(){if(!incoming)return;if(await persist(incoming)){setIncoming(null);setView('applications');setSelected(null)}}
   function openJob(a:Job){setSelected(a);setEditing(null);setDeleteConfirm(false)}
@@ -604,7 +528,7 @@ function Brutalist({jobs}:{jobs:Job[]}){
 
 export default function ConceptDashboard({variant}:{variant:ConceptVariant}){
   useEffect(()=>{try{localStorage.setItem('career-tracker-style',variant)}catch{}},[variant]);
-  const {jobs,loading,error,saving,persist}=useTracker();
+  const {jobs,loading,error,saving,persist}=useTrackerData();
   if(loading||error)return <Loading variant={variant} error={error}/>;
   if(variant==='editorial')return <Editorial jobs={jobs} persist={persist} saving={saving}/>;
   if(variant==='retro')return <Retro jobs={jobs} persist={persist} saving={saving}/>;
