@@ -251,6 +251,107 @@
 .osEditForm{padding:20px}.osEditForm>label{display:block;margin-top:13px;font-size:8px}.osEditForm input,.osEditForm textarea,.osEditForm select{width:100%;display:block;margin-top:6px;border:1px solid var(--os-line);background:var(--os-panel);color:var(--os-ink);font:10px ui-monospace,SFMono-Regular,Menlo,monospace;padding:8px;outline:0}.osEditForm input,.osEditForm select{height:36px}.osEditForm textarea{resize:vertical;min-height:90px}.osEditForm input:focus,.osEditForm textarea:focus,.osEditForm select:focus{box-shadow:inset 4px 0 0 var(--os-accent)}
 .osFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.osFormGrid label{font-size:8px}.osTimelineEditorHead{display:flex;align-items:center;justify-content:space-between;margin-top:20px;border-block:1px solid var(--os-line);padding:8px 0;font-size:9px}.osTimelineEditorHead button{border:1px solid var(--os-line);background:var(--os-panel-2);color:inherit;padding:5px 7px;font:9px inherit}.osTimelineEditor{display:grid;gap:7px;margin-top:9px}.osTimelineEditRow{display:grid;grid-template-columns:22px 1fr 1fr 110px 1.2fr 30px;gap:6px;align-items:center}.osTimelineEditRow>span{font-size:8px;color:var(--os-muted)}.osTimelineEditRow input,.osTimelineEditRow select{height:32px;margin:0;padding:0 6px;font-size:9px}.osTimelineEditRow button{height:32px;border:1px solid var(--os-line);background:var(--os-panel-2);color:inherit}.osImportDialog{width:min(500px,calc(100vw - 30px))}.osImportDialog h2{font-size:22px;margin:0 0 10px}.osImportDialog p{font-size:11px;line-height:1.55}
 
+
+/* Career OS character pass — brighter 90s chrome + vaporwave utility collage */
+.retroVapor{
+  --os-yellow:#ffe66f;--os-hi:#fffdf6;--os-mid:#b9b1bd;--os-lo:#5d5964;
+  --os-title-blue:#2198ff;--os-title-purple:#725cff;--os-title-pink:#ff6fc8;--os-title-cyan:#57dfe6;
+  background-image:radial-gradient(circle at 18% 12%,rgba(255,255,255,.12) 0 1px,transparent 1px);
+  background-size:12px 12px;
+}
+.retroClassic{--os-yellow:#d9d29f;--os-hi:#fffef7;--os-mid:#b3afa5;--os-lo:#66645f;--os-title-blue:#000080;--os-title-purple:#305da6;--os-title-pink:#777;--os-title-cyan:#2c7788}
+.retroMidnight{--os-yellow:#d9ff68;--os-hi:#514b6d;--os-mid:#302b45;--os-lo:#0d0b16;--os-title-blue:#4d59ff;--os-title-purple:#7b54ff;--os-title-pink:#ff64c5;--os-title-cyan:#30cbd8}
+
+.retroVapor .osMenu{background:linear-gradient(90deg,#fff7ef 0 42%,#ffd7ee 72%,#bff7f5 100%)}
+.retroMidnight .osMenu{background:linear-gradient(90deg,#171421,#211c36 55%,#302547)}
+.retro .pixelLogo{display:inline-grid;place-items:center;width:20px;height:20px;border:1px solid var(--os-line);background:var(--os-yellow);color:#111;box-shadow:inset 1px 1px 0 var(--os-hi),inset -1px -1px 0 var(--os-lo)}
+.retroMidnight .pixelLogo{background:var(--os-accent-2)}
+.retroVapor .osMenu b{background:#111;color:#fff;padding:3px 6px;letter-spacing:.04em}
+.retroMidnight .osMenu b{background:var(--os-accent);color:#fff}
+
+.retro .osWindow,.retro .osDialog,.retro .desktopIcons button>span,.retro .osPipelineCard{
+  border-top-color:var(--os-hi);border-left-color:var(--os-hi);border-right-color:var(--os-lo);border-bottom-color:var(--os-lo);
+}
+.retroVapor .osWindow,.retroVapor .osDialog{box-shadow:7px 7px 0 rgba(77,53,96,.58),10px 10px 0 rgba(255,116,202,.16)}
+.retroMidnight .osWindow,.retroMidnight .osDialog{box-shadow:7px 7px 0 #08070d,9px 9px 0 rgba(102,230,224,.12)}
+.retro .osFinderToolbar>button,.retro .osFilterbar button,.retro .osStatusLine button,.retro .osTaskbar button,.retro .todoToolbar button,.retro .monitorHead button,.retro .osDialogActions button,.retro .osDialogActions a{
+  box-shadow:inset 1px 1px 0 var(--os-hi),inset -1px -1px 0 var(--os-lo);
+}
+.retro .osFinderToolbar>button:active,.retro .osFilterbar button:active,.retro .osStatusLine button:active,.retro .osTaskbar button:active,.retro .todoToolbar button:active,.retro .monitorHead button:active{
+  box-shadow:inset 1px 1px 0 var(--os-lo),inset -1px -1px 0 var(--os-hi);transform:translate(1px,1px)
+}
+
+.retroVapor .osDatabase .osTitlebar{background:linear-gradient(90deg,var(--os-title-blue),var(--os-title-purple))}
+.retroVapor .osMonitor .osTitlebar{background:linear-gradient(90deg,#8059ff,var(--os-title-pink))}
+.retroVapor .osRecent .osTitlebar{background:linear-gradient(90deg,#05aeca,var(--os-title-cyan));color:#081619}
+.retroVapor .osActions .osTitlebar{background:linear-gradient(90deg,#ffbf5e,var(--os-yellow));color:#17120c}
+.retroVapor .osWorkspaceWindow>.osTitlebar{background:linear-gradient(90deg,var(--os-title-blue),var(--os-title-purple) 52%,var(--os-title-pink))}
+.retroClassic .osTitlebar{background:linear-gradient(90deg,#000080,#2d6cb1)}
+.retroMidnight .osDatabase .osTitlebar,.retroMidnight .osWorkspaceWindow>.osTitlebar{background:linear-gradient(90deg,#4551df,#7555ff)}
+.retroMidnight .osMonitor .osTitlebar{background:linear-gradient(90deg,#7351c7,#bd4f9d)}
+.retroMidnight .osRecent .osTitlebar{background:linear-gradient(90deg,#166a7a,#329da8)}
+.retroMidnight .osActions .osTitlebar{background:linear-gradient(90deg,#b04c8e,#ff70bd);color:#17111a}
+.retro .osTitlebar:after{content:"";position:absolute;left:24px;right:60px;bottom:3px;height:1px;background:rgba(255,255,255,.34);pointer-events:none}
+.retro .osTitlebar{position:relative}
+
+.retroVapor .desktopIcons button:nth-child(1)>span{background:linear-gradient(135deg,#9ff6ff,#62d8db)}
+.retroVapor .desktopIcons button:nth-child(2)>span{background:linear-gradient(135deg,#ff9ad9,#ff78c9)}
+.retroVapor .desktopIcons button:nth-child(3)>span{background:linear-gradient(135deg,#fff3a4,#ffe66f)}
+.retroVapor .desktopIcons button:nth-child(4)>span{background:linear-gradient(135deg,#b5a2ff,#7d6cff);color:#fff}
+.retroVapor .desktopIcons small{background:#fff6df}
+.retroMidnight .desktopIcons button>span{background:var(--os-panel-2)}
+.retroMidnight .desktopIcons button:nth-child(2)>span{background:#784b89}
+.retroMidnight .desktopIcons button:nth-child(3)>span{background:#2c7788}
+.retroMidnight .desktopIcons button:nth-child(4)>span{background:#554da0}
+
+.retroVapor .vaporSky{background:
+  linear-gradient(180deg,rgba(255,255,255,.18),transparent 24%),
+  linear-gradient(to bottom,#c7b5ff 0%,#d9bdf5 22%,#ffb9de 40%,#89dce3 48%,#86a7a2 48%)}
+.retroVapor .vaporSky:before{content:"";position:absolute;left:31%;top:10%;width:160px;height:92px;border:2px solid rgba(24,24,27,.38);background:
+  linear-gradient(90deg,rgba(255,255,255,.18) 50%,transparent 50%),
+  linear-gradient(rgba(255,255,255,.18) 50%,transparent 50%);
+  background-size:24px 24px;transform:rotate(-5deg);opacity:.55}
+.retroVapor .vaporSky b{filter:none;width:128px;height:128px;left:14%;top:20%;background:linear-gradient(135deg,#58e2e5 0 48%,#ff7dc9 48% 76%,#766bff 76%);clip-path:polygon(50% 0,100% 27%,84% 100%,16% 100%,0 27%);opacity:.55}
+.retroVapor .vaporSky i{box-shadow:0 0 0 6px rgba(255,255,255,.12),0 0 0 1px var(--os-line)}
+.retroMidnight .vaporSky b{filter:none;background:linear-gradient(135deg,rgba(102,230,224,.42),rgba(141,125,255,.26));clip-path:polygon(50% 0,100% 27%,84% 100%,16% 100%,0 27%)}
+
+.retroVapor .osHero>div:first-child{background:linear-gradient(135deg,rgba(98,216,219,.12),rgba(255,120,201,.08))}
+.retroVapor .osMiniStats p:nth-child(1){border-bottom-color:var(--os-accent-3)}
+.retroVapor .osMiniStats p:nth-child(2){border-bottom-color:var(--os-accent-2)}
+.retroVapor .osMiniStats p:nth-child(3){border-bottom-color:var(--os-yellow)}
+.retroVapor .osMiniStats p:nth-child(4){border-bottom-color:var(--os-accent)}
+.retroVapor .osStatusLine{background:linear-gradient(90deg,#def9f7,#efe3ff 55%,#ffe4f2)}
+.retroMidnight .osStatusLine{background:linear-gradient(90deg,#202a36,#2f2741)}
+
+.osFloatAlert,.osMiniPlayer{position:absolute;z-index:5;border:2px solid var(--os-line);background:var(--os-panel);box-shadow:5px 5px 0 var(--os-shadow);color:var(--os-ink)}
+.osFloatAlert{right:2.5%;top:44%;width:184px;transform:rotate(1.4deg)}
+.osFloatAlert>div,.osMiniPlayer>div:first-child{height:26px;background:linear-gradient(90deg,var(--os-accent-2),#ffb0dc);color:#111;display:flex;align-items:center;justify-content:space-between;padding:0 7px;font-size:9px;border-bottom:1px solid var(--os-line)}
+.osFloatAlert p{font-size:10px;padding:12px 12px 3px;margin:0;font-weight:700}.osFloatAlert button{display:block;margin:6px auto 12px;border:1px solid var(--os-line);background:var(--os-panel-2);color:var(--os-ink);padding:4px 18px;font:9px inherit;box-shadow:inset 1px 1px 0 var(--os-hi),inset -1px -1px 0 var(--os-lo)}
+.osMiniPlayer{left:3.5%;bottom:8%;width:190px;transform:rotate(-1.6deg)}
+.osMiniPlayer>div:first-child{background:linear-gradient(90deg,var(--os-accent-3),#a7f1ef)}
+.osMiniScreen{margin:10px;border:1px solid var(--os-line);background:#201d2a;color:#a8ffeb;padding:8px;font-size:9px;display:flex;justify-content:space-between}
+.osEqualizer{height:28px;margin:0 10px 11px;border:1px solid var(--os-line);display:flex;align-items:end;gap:3px;padding:4px;background:linear-gradient(90deg,#211b30,#352343)}
+.osEqualizer i{display:block;flex:1;background:var(--os-accent-2);min-height:3px}.osEqualizer i:nth-child(3n+2){background:var(--os-accent-3)}.osEqualizer i:nth-child(3n){background:var(--os-yellow)}
+.osDesktopStamp{position:absolute;left:7.8%;top:58%;z-index:3;border:2px solid var(--os-line);background:var(--os-yellow);color:#111;padding:8px 10px;font:9px/1.05 ui-monospace,monospace;transform:rotate(-7deg);box-shadow:3px 3px 0 var(--os-shadow)}.osDesktopStamp b{font-size:18px;letter-spacing:-.07em}
+.retroClassic .osFloatAlert,.retroClassic .osMiniPlayer,.retroClassic .osDesktopStamp{display:none}
+.retroMidnight .osFloatAlert>div,.retroMidnight .osMiniPlayer>div:first-child{color:#111}
+
+.osFinderStatus{display:grid;grid-template-columns:auto auto auto 1fr;gap:12px;align-items:center;min-height:26px;padding:0 10px;border-bottom:1px solid var(--os-line);background:linear-gradient(90deg,color-mix(in srgb,var(--os-accent-3) 18%,var(--os-panel)),color-mix(in srgb,var(--os-accent-2) 15%,var(--os-panel)));font-size:8px}.osFinderStatus b{text-align:right}
+.osReportBanner{height:38px;margin:10px 12px 0;border:1px solid var(--os-line);background:linear-gradient(90deg,var(--os-accent),var(--os-accent-2));color:#fff;display:grid;grid-template-columns:1fr auto 72px;gap:10px;align-items:center;padding:0 10px;font-size:9px;box-shadow:inset 1px 1px 0 rgba(255,255,255,.42)}.osReportBanner b{background:#111;color:#fff;padding:3px 6px}.osReportBanner i{height:8px;border:1px solid #111;background:repeating-linear-gradient(90deg,var(--os-yellow) 0 8px,transparent 8px 12px)}
+.retroMidnight .osReportBanner{color:#fff}.retroClassic .osReportBanner{background:linear-gradient(90deg,#000080,#2d6cb1)}
+
+.retroVapor .osPipelineColumn:nth-child(4n+1){box-shadow:inset 0 3px 0 var(--os-accent-3)}
+.retroVapor .osPipelineColumn:nth-child(4n+2){box-shadow:inset 0 3px 0 var(--os-accent-2)}
+.retroVapor .osPipelineColumn:nth-child(4n+3){box-shadow:inset 0 3px 0 var(--os-accent)}
+.retroVapor .osPipelineColumn:nth-child(4n+4){box-shadow:inset 0 3px 0 var(--os-yellow)}
+.retroVapor .osReportHero:first-child{background:linear-gradient(135deg,#f9edff,#e9fbfb)}
+.retroVapor .osReportHero:nth-child(2){background:linear-gradient(135deg,#fff7d1,#ffe9f5)}
+.retroVapor .osPanelHeader{background:linear-gradient(90deg,var(--os-title-blue),var(--os-title-purple))}
+.retroVapor .osTaskbar{background:linear-gradient(90deg,#d7d3ca,#e8d8e8 55%,#cce8e5)}
+.retroVapor .osTaskbar button:nth-child(2){border-bottom:3px solid var(--os-accent-3)}
+.retroVapor .osTaskbar button:nth-child(3){border-bottom:3px solid var(--os-accent-2)}
+.retroVapor .osTaskbar button:nth-child(4){border-bottom:3px solid var(--os-yellow)}
+
 .retro button:focus-visible,.retro a:focus-visible,.retro summary:focus-visible,.retro input:focus-visible,.retro textarea:focus-visible,.retro select:focus-visible{outline:2px solid var(--os-accent-3);outline-offset:2px}
 @media(max-width:1120px){
   .desktop,.osWorkspace{padding-left:108px;padding-right:22px}.desktop{grid-template-columns:1fr 1fr;gap:16px}.osHero{grid-template-columns:1fr;padding:20px}.osHero>div:first-child{border-right:0;border-bottom:1px solid var(--os-line);padding:0 0 18px}.osMiniStats{padding:18px 0 0}.osWidget{display:none}.osPipelineBoard{grid-template-columns:repeat(4,250px)}
