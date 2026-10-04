@@ -52,12 +52,26 @@ function useMetrics(jobs:Job[]){
     const responses=jobs.filter(replied);
     const activeJobs=jobs.filter(active);
     const interviews=jobs.filter(a=>reached(a,'Interview'));
-    const offers=jobs.filter(a=>reached(a,'Offer')||status(a)==='Offer');
+    const offers=jobs.filter(a=>reached(a,'Offer')||status(a)==='Offer'||status(a)==='Accepted');
     const rejected=jobs.filter(a=>status(a)==='Rejected');
+    const withdrawn=jobs.filter(a=>status(a)==='Withdrawn');
+    const accepted=jobs.filter(a=>status(a)==='Accepted');
     const rated=jobs.filter(a=>a.score!==null);
     const strong=jobs.filter(a=>a.score!==null&&a.score>=4);
+    const screening=jobs.filter(a=>reached(a,'Screening call'));
+    const assessments=jobs.filter(a=>reached(a,'Technical assessment'));
+    const rejectedAfterInterview=rejected.filter(a=>reached(a,'Interview')).length;
+    const withdrawnAfterInterview=withdrawn.filter(a=>reached(a,'Interview')).length;
+    const rejectedAfterAssessment=rejected.filter(a=>reached(a,'Technical assessment')&&!reached(a,'Interview')).length;
+    const withdrawnAfterAssessment=withdrawn.filter(a=>reached(a,'Technical assessment')&&!reached(a,'Interview')).length;
     const month=today().slice(0,7);
     const thisMonth=jobs.filter(a=>a.appliedDate.startsWith(month)).length;
+    const dated=jobs.map(a=>a.appliedDate).filter(Boolean).sort();
+    const earliest=dated[0]||'';
+    const latest=dated.at(-1)||'';
+    const currentDay=today();
+    const elapsedDays=earliest?Math.max(1,Math.floor((Date.parse(currentDay+'T12:00:00')-Date.parse(earliest+'T12:00:00'))/86400000)+1):0;
+    const dailyAverage=elapsedDays?(jobs.filter(a=>a.appliedDate&&a.appliedDate<=currentDay).length/elapsedDays).toFixed(1):'—';
     const followups=jobs.filter(a=>active(a)&&a.nextAction).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
     const recent=[...jobs].sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate)).slice(0,6);
     const stages=['Applied','In review','Screening call','Technical assessment','Interview','Offer','Accepted','Rejected','Withdrawn']
@@ -70,7 +84,7 @@ function useMetrics(jobs:Job[]){
       return {key,label:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),count:jobs.filter(a=>a.appliedDate===key).length};
     });
     const maxDaily=Math.max(1,...daily.map(x=>x.count));
-    return {total,responses:responses.length,responseRate:pct(responses.length,total),active:activeJobs.length,interviews:interviews.length,offers:offers.length,rejected:rejected.length,rated:rated.length,strong:strong.length,thisMonth,followups,recent,stages,daily,maxDaily};
+    return {total,responses:responses.length,responseRate:pct(responses.length,total),active:activeJobs.length,interviews:interviews.length,offers:offers.length,rejected:rejected.length,withdrawn:withdrawn.length,accepted:accepted.length,rated:rated.length,strong:strong.length,screening:screening.length,assessments:assessments.length,rejectedAfterInterview,withdrawnAfterInterview,rejectedAfterAssessment,withdrawnAfterAssessment,thisMonth,earliest,latest,dailyAverage,followups,recent,stages,daily,maxDaily};
   },[jobs]);
 }
 
@@ -238,7 +252,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
         </div>
       </div>
 
-      <div className={styles.editorialRibbon}><span>THIS MONTH <b>{m.thisMonth}</b></span><span>STRONG FITS <b>{m.strong}</b></span><span>OFFERS <b>{m.offers}</b></span><span>REJECTED <b>{m.rejected}</b></span></div>
+      {view!=='overview'&&<div className={styles.editorialRibbon}><span>THIS MONTH <b>{m.thisMonth}</b></span><span>STRONG FITS <b>{m.strong}</b></span><span>OFFERS <b>{m.offers}</b></span><span>REJECTED <b>{m.rejected}</b></span></div>}
       <div className={styles.editorialUtility}>
         <span aria-live="polite">{saving?'SAVING CHANGES…':'DATABASE READY'}</span>
         <div>
@@ -250,6 +264,20 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
         <input ref={fileInput} hidden type="file" accept="application/json,.json" onChange={e=>{const f=e.target.files?.[0];if(f)void readImport(f)}}/>
       </div>
     </div>
+
+    {view==='overview'&&<section className={styles.overviewSnapshot}>
+      <div className={styles.snapshotHeading}><span>SEARCH SNAPSHOT</span><button onClick={()=>setView('statistics')}>OPEN ANALYTICS <ArrowRight size={13}/></button></div>
+      <div className={styles.snapshotGrid}>
+        <article><span>TOTAL APPLICATIONS</span><strong>{m.total}</strong><small>complete archive</small></article>
+        <article><span>THIS MONTH</span><strong>{m.thisMonth}</strong><small>{new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</small></article>
+        <article><span>ACTIVE NOW</span><strong>{m.active}</strong><small>still in motion</small></article>
+        <article className={styles.snapshotAccent}><span>REACHED INTERVIEW</span><strong>{m.interviews}</strong><small>{m.rejectedAfterInterview} rejected · {m.withdrawnAfterInterview} withdrawn after interview</small></article>
+        <article><span>DAILY AVERAGE</span><strong>{m.dailyAverage}</strong><small>applications / day since first</small></article>
+        <article><span>REJECTED</span><strong>{m.rejected}</strong><small>{m.rejectedAfterInterview} after interview</small></article>
+        <article className={styles.snapshotDate}><span>FIRST APPLICATION</span><strong>{m.earliest?fmt(m.earliest):'—'}</strong><small>{m.earliest?new Date(m.earliest+'T12:00:00').getFullYear():'No applications yet'}</small></article>
+        <article className={styles.snapshotDate}><span>LATEST APPLICATION</span><strong>{m.latest?fmt(m.latest):'—'}</strong><small>{m.latest?'most recent submission':'No applications yet'}</small></article>
+      </div>
+    </section>}
 
     {view==='overview'&&<div className={styles.editorialGrid}>
       <section className={styles.editorialActivity}><HeaderIndex no="01" label="APPLICATION ACTIVITY" tail="LAST 14 DAYS"/><div className={styles.editorialChart}>{m.daily.map((d,i)=><div key={d.key} className={styles.editorialBarCol}><div className={styles.editorialBarRail}><i style={{height:Math.max(4,d.count/m.maxDaily*100)+'%'}}/></div><small>{[0,4,9,13].includes(i)?d.label:''}</small></div>)}</div><div className={styles.chartCaption}><span>APPLICATION VELOCITY</span><strong>{m.thisMonth} sent this month</strong></div></section>
@@ -273,7 +301,21 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
       <div className={styles.pipelineBoard}>{byStage.filter(g=>g.jobs.length||['Applied','Interview','Offer'].includes(g.stage)).map((g,i)=><section key={g.stage} className={styles.pipelineColumn}><div className={styles.pipelineColumnHead}><span>{String(i+1).padStart(2,'0')}</span><strong>{g.stage}</strong><b>{g.jobs.length}</b></div><div>{g.jobs.slice(0,8).map(a=><button key={a.id} className={styles.pipelineCard} onClick={()=>openJob(a)}><strong title={a.company}>{a.company}</strong><span title={a.role}>{a.role}</span><div className={styles.pipelineCardMeta}><em>{a.score===null?'UNRATED':a.score.toFixed(1)+' / 5'}</em><time>{fmt(a.appliedDate)}</time></div></button>)}</div></section>)}</div>
     </div>}
 
-    {view==='statistics'&&<div className={styles.editorialWorkspace}><div className={styles.statisticsGrid}><section className={styles.bigStat}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><p>{m.responses} replies from {m.total} applications.</p><i style={{width:m.responseRate+'%'}}/></section><section className={styles.bigStat}><span>INTERVIEW REACH</span><strong>{pct(m.interviews,m.total)}%</strong><p>{m.interviews} applications reached interview.</p><i style={{width:pct(m.interviews,m.total)+'%'}}/></section><section className={styles.statPanel}><HeaderIndex no="01" label="FIT DISTRIBUTION" tail={m.rated+' RATED'}/><div className={styles.fitLedger}>{fitGroups.map(g=><div key={g.label}><span>{g.label}<small>{g.range}</small></span><i style={{width:Math.max(4,g.count/Math.max(1,m.rated)*100)+'%'}}/><b>{g.count}</b></div>)}</div></section><section className={styles.statPanel}><HeaderIndex no="02" label="OUTCOMES" tail="CURRENT"/><div className={styles.outcomeNumbers}><div><strong>{m.active}</strong><span>ACTIVE</span></div><div><strong>{m.rejected}</strong><span>REJECTED</span></div><div><strong>{m.offers}</strong><span>OFFERS</span></div><div><strong>{m.strong}</strong><span>4.0+ FIT</span></div></div></section></div></div>}
+    {view==='statistics'&&<div className={styles.editorialWorkspace}><div className={styles.statisticsGrid}>
+      <section className={styles.bigStat}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><p>{m.responses} replies from {m.total} applications.</p><i style={{width:m.responseRate+'%'}}/></section>
+      <section className={styles.bigStat}><span>INTERVIEW REACH</span><strong>{pct(m.interviews,m.total)}%</strong><p>{m.interviews} applications reached interview.</p><i style={{width:pct(m.interviews,m.total)+'%'}}/></section>
+      <section className={styles.statPanel}><HeaderIndex no="01" label="FIT DISTRIBUTION" tail={m.rated+' RATED'}/><div className={styles.fitLedger}>{fitGroups.map(g=><div key={g.label}><span>{g.label}<small>{g.range}</small></span><i style={{width:Math.max(4,g.count/Math.max(1,m.rated)*100)+'%'}}/><b>{g.count}</b></div>)}</div></section>
+      <section className={styles.statPanel}><HeaderIndex no="02" label="OUTCOMES" tail="CURRENT"/><div className={styles.outcomeNumbers}><div><strong>{m.active}</strong><span>ACTIVE</span></div><div><strong>{m.rejected}</strong><span>REJECTED</span></div><div><strong>{m.offers}</strong><span>OFFERS</span></div><div><strong>{m.accepted}</strong><span>ACCEPTED</span></div></div></section>
+      <section className={styles.journeyPanel}><HeaderIndex no="03" label="HISTORICAL REACH" tail="EVER REACHED"/><div className={styles.journeyReach}>
+        {[['Screening',m.screening],['Assessment',m.assessments],['Interview',m.interviews],['Offer',m.offers]] .map(([label,count],i)=><div key={label as string}><span>{String(i+1).padStart(2,'0')} / {label}</span><strong>{count}</strong><i><b style={{width:Math.max(4,(count as number)/Math.max(1,m.total)*100)+'%'}}/></i><small>{pct(count as number,m.total)}% of all applications</small></div>)}
+      </div></section>
+      <section className={styles.journeyPanel}><HeaderIndex no="04" label="WHERE PROCESSES STOPPED" tail="HISTORICAL"/><div className={styles.exitGrid}>
+        <div><strong>{m.rejectedAfterInterview}</strong><span>REJECTED AFTER INTERVIEW</span></div>
+        <div><strong>{m.withdrawnAfterInterview}</strong><span>WITHDRAWN AFTER INTERVIEW</span></div>
+        <div><strong>{m.rejectedAfterAssessment}</strong><span>REJECTED AFTER ASSESSMENT</span></div>
+        <div><strong>{m.withdrawnAfterAssessment}</strong><span>WITHDRAWN AFTER ASSESSMENT</span></div>
+      </div></section>
+    </div></div>}
 
     <div className={styles.editorialFooter}><span>CAREER TRACKER / {m.total} RECORDS</span><span>{themeLabel}</span><span>{view.toUpperCase()} / EDITORIAL SYSTEM</span></div>
 
@@ -309,7 +351,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
           <div className={styles.timelineEditor}>{editing.events.map((event,i)=><div key={event.id} className={styles.timelineEditRow}>
             <span>{String(i+1).padStart(2,'0')}</span>
             <select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>
-            {eventStateOptions(event.type).length?<select aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Cancelled = withdrawn/rescinded':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.eventStateStatic} title={event.type==='Update'?'Informational update; no outcome needed.':'This event is itself the outcome.'}>RECORDED</span>}
+            {eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Cancelled = withdrawn/rescinded':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.eventStateStatic} title={event.type==='Update'?'Informational update; no outcome needed.':'This event is itself the outcome.'}>RECORDED</span>}
             <input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/>
             <input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/>
             <button type="button" aria-label="Remove event" onClick={()=>removeEditEvent(event.id)}><X size={13}/></button>
@@ -503,7 +545,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           <label>NOTES<textarea rows={5} value={editing.notes} onChange={e=>editField('notes',e.target.value)}/></label>
           <div className={styles.osTimelineEditorHead}><span>PROCESS LOG</span><button type="button" onClick={addEditEvent}>＋ ADD EVENT</button></div>
           <div className={styles.osTimelineStateHelp}>UPDATE = INFO ONLY · PLANNED = ANNOUNCED · SCHEDULED = DATE FIXED · COMPLETED = DONE / WAITING · PASSED = ADVANCED</div>
-          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Cancelled = withdrawn/rescinded':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
+          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Cancelled = withdrawn/rescinded':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
           <div className={styles.osDialogActions}><button type="button" onClick={()=>setEditing(null)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'SAVE CHANGES'}</button></div>
         </form>}
       </div>
