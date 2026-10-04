@@ -82,7 +82,7 @@ type EditorialTheme='archive'|'signal'|'night';
 
 function Editorial({jobs}:{jobs:Job[]}){
   const m=useMetrics(jobs);
-  const [theme,setTheme]=useState<EditorialTheme>('archive');
+  const [theme,setTheme]=useState<EditorialTheme>('signal');
   const themeClass=theme==='signal'?styles.themeSignal:theme==='night'?styles.themeNight:styles.themeArchive;
   const themeLabel=theme==='signal'?'SIGNAL EDITION':theme==='night'?'NIGHT PRESS':'ARCHIVE EDITION';
   return <div className={[styles.editorial,themeClass].join(' ')}>
@@ -121,10 +121,13 @@ function Editorial({jobs}:{jobs:Job[]}){
             <div><strong>{m.interviews}</strong><span>interviews</span></div>
             <div><strong>{m.responseRate}%</strong><span>response rate</span></div>
           </div>
-          <div className={styles.editorialPullQuote}>
-            <span>NOW</span>
-            <strong>{m.followups.length?m.followups[0].nextAction:'Keep the pipeline moving.'}</strong>
-            <small>{m.followups.length?m.followups[0].company:'No urgent follow-up queued'}</small>
+          <div className={styles.editorialNextFocus}>
+            <div className={styles.nextFocusLabel}><span>NEXT</span><i>{m.followups.length?'01':'—'}</i></div>
+            <div className={styles.nextFocusCopy}>
+              <strong>{m.followups.length?m.followups[0].nextAction:'Keep the pipeline moving.'}</strong>
+              <small>{m.followups.length?m.followups[0].company+' · '+(m.followups[0].dueDate?fmt(m.followups[0].dueDate):'NO DUE DATE'):'No urgent follow-up queued'}</small>
+            </div>
+            <ArrowRight size={18}/>
           </div>
         </div>
       </div>
@@ -157,7 +160,7 @@ function Editorial({jobs}:{jobs:Job[]}){
         <div className={styles.stageLedger}>{m.stages.map((s,i)=><div key={s.label}>
           <span>{String(i+1).padStart(2,'0')}</span>
           <strong>{s.label}</strong>
-          <i style={{width:Math.max(7,s.count/Math.max(1,m.total)*100)+'%'}}/>
+          <i style={{width:Math.max(10,s.count/Math.max(1,...m.stages.map(x=>x.count))*100)+'%'}}/>
           <b>{String(s.count).padStart(2,'0')}</b>
         </div>)}</div>
       </section>
