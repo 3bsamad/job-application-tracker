@@ -9,7 +9,7 @@ import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {AlertDialog,AlertDialogContent,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
 import {Plus,Search,ArrowUpRight,Download,Upload,BriefcaseBusiness,Check,CalendarDays,Trash2,ChevronRight,Sun,Moon,LayoutDashboard,ListFilter,GitBranch,ChartNoAxesCombined,ArrowRight,SlidersHorizontal} from 'lucide-react';
-import {Job,Event,uid,band,bands,status,active,replied,positive,reached,ordered,parseBackup,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
+import {Job,Event,uid,band,bands,status,active,replied,positive,reached,ordered,parseBackup,types,eventStateOptions,eventStateLabel} from '@/lib/model';
 import {useTrackerData} from '@/hooks/use-tracker-data';
 import {buildTrackerAnalytics,localISODate} from '@/lib/tracker-analytics';
 import {backupFilename,backupJSON,detailedCSV,downloadText} from '@/lib/tracker-export';
