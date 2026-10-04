@@ -10,7 +10,10 @@ import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/compo
 import {AlertDialog,AlertDialogContent,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
 import {Plus,Search,ArrowUpRight,Download,Upload,BriefcaseBusiness,Check,CalendarDays,Trash2,ChevronRight,Sun,Moon,LayoutDashboard,ListFilter,GitBranch,ChartNoAxesCombined,ArrowRight,SlidersHorizontal} from 'lucide-react';
 import {Job,Event,uid,band,bands,status,active,replied,positive,reached,ordered,parseBackup,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
-const today=()=>new Date().toLocaleDateString('en-CA');
+import {useTrackerData} from '@/hooks/use-tracker-data';
+import {buildTrackerAnalytics,localISODate} from '@/lib/tracker-analytics';
+import {backupFilename,backupJSON,detailedCSV,downloadText} from '@/lib/tracker-export';
+const today=localISODate;
 const date=(s:string)=>s?new Date(s+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Date not recorded';
 const pct=(a:number,b:number)=>b?Math.round(a/b*100)+'%':'—';
 const mean=(a:Job[])=>{const r=a.filter(a=>a.score!==null);return r.length?(r.reduce((s,a)=>s+a.score!,0)/r.length).toFixed(2):'—'};
@@ -19,31 +22,24 @@ function Pick({value,onChange,options,label}:{value:string;onChange:(x:string)=>
 function Metric({label,value,sub}:{label:string;value:string|number;sub:string}){return <div className="metric"><p>{label}</p><strong>{value}</strong><small>{sub}</small></div>}
 const fitLabel=(b:string)=>b==='Excellent'?'Exceptional':b==='Moderate'?'Okay':b;
 function Score({job}:{job:Job}){return <span className={'score '+band(job.score).toLowerCase()}>{job.score===null?'Unrated':job.score.toFixed(1)+' / 5'}<small>{job.score!==null?fitLabel(band(job.score)):''}</small></span>}
-function download(data:string,name:string,type='application/json'){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 export default function StudioPage(){
  const [theme,setTheme]=useState('dark');
  useEffect(()=>{setTheme(document.documentElement.dataset.theme==='light'?'light':'dark');try{localStorage.setItem('career-tracker-style','studio')}catch{}},[]);
  function toggleTheme(){const next=theme==='dark'?'light':'dark';setTheme(next);document.documentElement.dataset.theme=next;try{localStorage.setItem('career-tracker-theme',next)}catch{}}
- const [jobs,setJobs]=useState<Job[]>([]),[revision,setRevision]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[saving,setSaving]=useState(false),[dirty,setDirty]=useState(false);
+ const {jobs,loading,error,saving,dirty,load,persist}=useTrackerData({optimistic:true});
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('All stages'),[fit,setFit]=useState('All fits'),[sort,setSort]=useState('Newest first'),[draft,setDraft]=useState<Job|null>(null),[remove,setRemove]=useState(false),[incoming,setIncoming]=useState<Job[]|null>(null),[tab,setTab]=useState('overview'),[editing,setEditing]=useState(false);const file=useRef<HTMLInputElement>(null);
- async function load(){setLoading(true);try{const r=await fetch('/api/tracker');const data=await r.json() as {applications:Job[];revision:number;error:string};if(!r.ok)throw Error(data.error);setJobs(data.applications);setRevision(data.revision);setError('');setDirty(false)}catch(e){setError((e as Error).message)}finally{setLoading(false)}}
- useEffect(()=>{load()},[]);
- useEffect(()=>{const f=(e:BeforeUnloadEvent)=>{if(dirty){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',f);return()=>window.removeEventListener('beforeunload',f)},[dirty]);
- async function persist(next:Job[]){setJobs(next);setDirty(true);setSaving(true);setError('');try{const r=await fetch('/api/tracker',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({applications:next,revision})});const data=await r.json() as {applications:Job[];revision:number;error:string};if(!r.ok)throw Error(data.error);setRevision(data.revision);setDirty(false);return true}catch(e){setError((e as Error).message);return false}finally{setSaving(false)}}
- const exportJSON=()=>download(JSON.stringify({version:2,exportedAt:new Date().toISOString(),applications:jobs},null,2),'job_tracker_backup_'+today()+'.json');
- function exportCSV(){const rows=[['Company','Role','Applied','Current stage','Fit score','Fit band','First response','Next action','Due date','Rejection reason','Notes','Timeline'],...jobs.map(a=>[a.company,a.role,a.appliedDate,status(a),a.score??'',band(a.score),ordered(a).find(e=>e.type!=='Withdrawn'&&e.state!=='Cancelled')?.date||'',a.nextAction,a.dueDate,a.reason,a.notes,JSON.stringify(a.events)])];download(rows.map(r=>r.map(c=>'"'+String(c).replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n'),'job_applications.csv','text/csv')}
+ const exportJSON=()=>downloadText(backupJSON(jobs),backupFilename());
+ const exportCSV=()=>downloadText(detailedCSV(jobs),'job_applications.csv','text/csv');
  function edit(a:Job){setEditing(false);setDraft(structuredClone(a))}
  const update=(key:keyof Job,value:any)=>setDraft(d=>d?{...d,[key]:value}:null);
  const updateEvent=(id:string,key:keyof Event,value:string)=>setDraft(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
  const updateEventType=(id:string,type:string)=>setDraft(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,type,state:defaultEventState(type)}:e)}:null);
  function addEvent(){if(!draft)return;update('events',[...draft.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}])}
- const total=jobs.length,responded=jobs.filter(replied),high=jobs.filter(a=>a.score!==null&&a.score>=4),rejected=jobs.filter(a=>status(a)==='Rejected'),rated=jobs.filter(a=>a.score!==null),live=jobs.filter(active),interviews=jobs.filter(a=>reached(a,'Interview'));
- const currentDay=today(),monthPrefix=currentDay.slice(0,7),thisMonth=jobs.filter(a=>a.appliedDate.startsWith(monthPrefix)).length;
- const firstDate=jobs.map(a=>a.appliedDate).filter(d=>d&&d<=currentDay).sort()[0];
- const elapsedDays=firstDate?Math.max(1,Math.round((Date.parse(currentDay)-Date.parse(firstDate))/86400000)+1):0;
- const dailyAverage=elapsedDays?(jobs.filter(a=>a.appliedDate&&a.appliedDate<=currentDay).length/elapsedDays).toFixed(1):'—';
- const daily=Array.from({length:30},(_,i)=>{const d=new Date(currentDay+'T12:00:00');d.setDate(d.getDate()-29+i);const key=d.toLocaleDateString('en-CA');return {date:key,count:jobs.filter(a=>a.appliedDate===key).length}});
- const dailyMax=Math.max(1,...daily.map(d=>d.count));
+ const analytics=buildTrackerAnalytics(jobs,30);
+ const total=analytics.total,responded=analytics.responsesJobs,high=analytics.strongJobs,rejected=analytics.rejectedJobs,rated=analytics.ratedJobs,live=analytics.activeJobs,interviews=analytics.interviewsJobs;
+ const currentDay=today(),thisMonth=analytics.thisMonth,firstDate=analytics.earliest,dailyAverage=analytics.dailyAverage;
+ const daily=analytics.daily.map(d=>({date:d.key,count:d.count}));
+ const dailyMax=analytics.maxDaily;
  const visible=jobs.filter(a=>([a.company,a.role,a.notes,a.nextAction,...a.events.flatMap(e=>[e.type,e.label,e.notes])].join(' ')).toLowerCase().includes(query.toLowerCase())&&(filter==='All stages'||(filter==='Active processes'?active(a):status(a)===filter))&&(fit==='All fits'||(fit==='Recommended · 4+'?a.score!==null&&a.score>=4:band(a.score)===fit))).sort((a,b)=>sort==='Highest score'?(b.score??-1)-(a.score??-1):sort==='Company A–Z'?a.company.localeCompare(b.company):sort==='Oldest first'?a.appliedDate.localeCompare(b.appliedDate):b.appliedDate.localeCompare(a.appliedDate));
  const queue=live.slice().sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
  const timed=responded.map(a=>{const e=ordered(a).find(e=>e.type!=='Withdrawn'&&e.state!=='Cancelled'&&e.date);return e&&a.appliedDate?(Date.parse(e.date)-Date.parse(a.appliedDate))/86400000:null}).filter((n):n is number=>n!==null&&n>=0);
