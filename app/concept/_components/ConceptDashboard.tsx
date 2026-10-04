@@ -127,7 +127,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
       <span>{m.total.toString().padStart(4,'0')} RECORDS</span>
     </div>
 
-    <header className={styles.editorialHero}>
+    <div className={styles.editorialHero}>
       <div className={styles.editorialKicker}>
         <div><span className={styles.liveDot}/>LIVE WORKSPACE</div>
         <nav className={styles.editorialWorkspaceNav} aria-label="Editorial workspace">
@@ -175,9 +175,9 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
         <span>OFFERS <b>{m.offers}</b></span>
         <span>REJECTED <b>{m.rejected}</b></span>
       </div>
-    </header>
+    </div>
 
-    {view==='overview'&&<main className={styles.editorialGrid}>
+    {view==='overview'&&<div className={styles.editorialGrid}>
       <section className={styles.editorialActivity}>
         <HeaderIndex no="01" label="APPLICATION ACTIVITY" tail="LAST 14 DAYS"/>
         <div className={styles.editorialChart}>{m.daily.map((d,i)=><div key={d.key} className={styles.editorialBarCol}><div className={styles.editorialBarRail}><i style={{height:Math.max(4,d.count/m.maxDaily*100)+'%'}}/></div><small>{[0,4,9,13].includes(i)?d.label:''}</small></div>)}</div>
@@ -199,9 +199,9 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
         <div className={styles.editorialActionStack}>{m.followups.slice(0,5).map((a,i)=><button key={a.id} onClick={()=>setSelected(a)}><span>{String(i+1).padStart(2,'0')}</span><div><strong>{a.nextAction}</strong><p>{a.company} · {a.role}</p></div><time>{a.dueDate?fmt(a.dueDate):'NO DATE'}</time></button>)}{!m.followups.length&&<p>No follow-ups queued.</p>}</div>
         <div className={styles.actionFooter}><span>QUEUE / {String(m.followups.length).padStart(2,'0')}</span><ArrowRight size={14}/></div>
       </section>
-    </main>}
+    </div>}
 
-    {view==='applications'&&<main className={styles.editorialWorkspace}>
+    {view==='applications'&&<div className={styles.editorialWorkspace}>
       <div className={styles.workspaceToolbar}>
         <label className={styles.editorialSearch}><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role, notes…"/></label>
         <span>{filtered.length} / {m.total} RECORDS</span>
@@ -213,28 +213,28 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
           <span>{String(i+1).padStart(3,'0')}</span><span><strong>{a.company}</strong><small>{a.role}</small></span><b>{a.score===null?'—':a.score.toFixed(1)}</b><em>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span><small>{a.nextAction||'Awaiting response'}</small><ArrowRight size={14}/></span>
         </button>)}
       </section>
-    </main>}
+    </div>}
 
-    {view==='pipeline'&&<main className={styles.editorialWorkspace}>
+    {view==='pipeline'&&<div className={styles.editorialWorkspace}>
       <div className={styles.pipelineIntro}><span>ACTIVE / {m.active}</span><p>Each column is a current stage, not a historical funnel. Open a card to inspect the full recorded process.</p></div>
       <div className={styles.pipelineBoard}>
         {byStage.filter(g=>g.jobs.length||['Applied','Interview','Offer'].includes(g.stage)).map((g,i)=><section key={g.stage} className={styles.pipelineColumn}>
           <div className={styles.pipelineColumnHead}><span>{String(i+1).padStart(2,'0')}</span><strong>{g.stage}</strong><b>{g.jobs.length}</b></div>
-          <div>{g.jobs.slice(0,8).map(a=><button key={a.id} className={styles.pipelineCard} onClick={()=>setSelected(a)}><strong>{a.company}</strong><span>{a.role}</span><footer><em>{a.score===null?'UNRATED':a.score.toFixed(1)+' / 5'}</em><time>{fmt(a.appliedDate)}</time></footer></button>)}</div>
+          <div>{g.jobs.slice(0,8).map(a=><button key={a.id} className={styles.pipelineCard} onClick={()=>setSelected(a)}><strong>{a.company}</strong><span>{a.role}</span><div className={styles.pipelineCardMeta}><em>{a.score===null?'UNRATED':a.score.toFixed(1)+' / 5'}</em><time>{fmt(a.appliedDate)}</time></div></button>)}</div>
         </section>)}
       </div>
-    </main>}
+    </div>}
 
-    {view==='statistics'&&<main className={styles.editorialWorkspace}>
+    {view==='statistics'&&<div className={styles.editorialWorkspace}>
       <div className={styles.statisticsGrid}>
         <section className={styles.bigStat}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><p>{m.responses} replies from {m.total} applications.</p><i style={{width:m.responseRate+'%'}}/></section>
         <section className={styles.bigStat}><span>INTERVIEW REACH</span><strong>{pct(m.interviews,m.total)}%</strong><p>{m.interviews} applications reached interview.</p><i style={{width:pct(m.interviews,m.total)+'%'}}/></section>
         <section className={styles.statPanel}><HeaderIndex no="01" label="FIT DISTRIBUTION" tail={m.rated+' RATED'}/><div className={styles.fitLedger}>{fitGroups.map(g=><div key={g.label}><span>{g.label}<small>{g.range}</small></span><i style={{width:Math.max(4,g.count/Math.max(1,m.rated)*100)+'%'}}/><b>{g.count}</b></div>)}</div></section>
         <section className={styles.statPanel}><HeaderIndex no="02" label="OUTCOMES" tail="CURRENT"/><div className={styles.outcomeNumbers}><div><strong>{m.active}</strong><span>ACTIVE</span></div><div><strong>{m.rejected}</strong><span>REJECTED</span></div><div><strong>{m.offers}</strong><span>OFFERS</span></div><div><strong>{m.strong}</strong><span>4.0+ FIT</span></div></div></section>
       </div>
-    </main>}
+    </div>}
 
-    <footer className={styles.editorialFooter}><span>CAREER TRACKER / CONCEPT 01</span><span>{themeLabel}</span><span>{view.toUpperCase()} / EDITORIAL SYSTEM</span></footer>
+    <div className={styles.editorialFooter}><span>CAREER TRACKER / CONCEPT 01</span><span>{themeLabel}</span><span>{view.toUpperCase()} / EDITORIAL SYSTEM</span></div>
 
     {selected&&<div className={styles.editorialOverlay} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)setSelected(null)}}>
       <aside className={styles.editorialDetail} role="dialog" aria-modal="true" aria-label={selected.company}>
@@ -274,7 +274,7 @@ function Retro({jobs}:{jobs:Job[]}){
   return <div className={styles.retro}>
     <ConceptNav variant="retro"/>
     <div className={styles.osMenu}><div><span className={styles.pixelLogo}>◈</span><b>CAREER_OS</b><span>File</span><span>View</span><span>Process</span><span>Help</span></div><div><span>DATA: ONLINE</span><span>SESSION 2026</span></div></div>
-    <main className={styles.desktop}>
+    <div className={styles.desktop}>
       <aside className={styles.desktopIcons}><div><span><Database size={24}/></span><small>Applications</small></div><div><span><FolderOpen size={24}/></span><small>Pipeline</small></div><div><span><FileText size={24}/></span><small>Reports</small></div></aside>
       <Window title="APPLICATION_DATABASE.db" className={styles.osDatabase}>
         <div className={styles.osHero}><div><span>RECORD COUNT</span><strong>{String(m.total).padStart(4,'0')}</strong></div><div className={styles.osMiniStats}><p><b>{String(m.active).padStart(2,'0')}</b><span>ACTIVE</span></p><p><b>{String(m.interviews).padStart(2,'0')}</b><span>INTERVIEWS</span></p><p><b>{String(m.offers).padStart(2,'0')}</b><span>OFFERS</span></p><p><b>{m.responseRate}%</b><span>RESPONSE</span></p></div></div>
@@ -294,7 +294,7 @@ function Retro({jobs}:{jobs:Job[]}){
         {m.recent.map(a=><div className={styles.fileRow} key={a.id}><span><BriefcaseBusiness size={14}/><div><strong>{a.company}</strong><small>{a.role}</small></div></span><b>{a.score===null?'--':a.score.toFixed(1)}</b><em>{status(a).toUpperCase()}</em><time>{fmt(a.appliedDate)}</time></div>)}
       </Window>
       <div className={styles.osCursor}><MousePointer2 size={28}/></div>
-    </main>
+    </div>
     <div className={styles.osTaskbar}><button>▣ START</button><span>career_tracker.exe</span><span>database.db</span><strong>● ONLINE</strong></div>
   </div>;
 }
@@ -303,7 +303,7 @@ function Brutalist({jobs}:{jobs:Job[]}){
   const m=useMetrics(jobs);
   return <div className={styles.brutalist}>
     <ConceptNav variant="brutalist"/>
-    <header className={styles.brutalHero}>
+    <div className={styles.brutalHero}>
       <div className={styles.brutalTopline}><span>JOB APPLICATION TRACKER</span><span>NO. {String(m.total).padStart(3,'0')}</span></div>
       <div className={styles.brutalHeroGrid}>
         <div className={styles.brutalMainNumber}><span>YOU HAVE</span><strong>{m.total}</strong><b>APPLICATIONS<br/>ON THE BOARD.</b></div>
@@ -311,16 +311,16 @@ function Brutalist({jobs}:{jobs:Job[]}){
         <div className={styles.brutalResponse}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><div style={{width:m.responseRate+'%'}}/></div>
       </div>
       <div className={styles.marquee}><div>KEEP APPLYING ✦ FOLLOW UP ✦ PREP THE INTERVIEW ✦ TRACK EVERYTHING ✦ KEEP APPLYING ✦ FOLLOW UP ✦ PREP THE INTERVIEW ✦ TRACK EVERYTHING ✦</div></div>
-    </header>
-    <main className={styles.brutalGrid}>
+    </div>
+    <div className={styles.brutalGrid}>
       <section className={styles.brutalYellow}><span className={styles.brutalLabel}>01 / SCOREBOARD</span><div className={styles.scoreboard}><div><b>{m.thisMonth}</b><span>THIS MONTH</span></div><div><b>{m.responses}</b><span>REPLIES</span></div><div><b>{m.interviews}</b><span>INTERVIEWS</span></div><div><b>{m.offers}</b><span>OFFERS</span></div></div></section>
       <section className={styles.brutalPink}><span className={styles.brutalLabel}>02 / STATUS</span><div className={styles.brutalStages}>{m.stages.map((s,i)=><div key={s.label}><span>{String(i+1).padStart(2,'0')}</span><strong>{s.label}</strong><b>{s.count}</b></div>)}</div></section>
       <section className={styles.brutalRecent}><div className={styles.brutalSectionHead}><span>03 / RECENT</span><b>WHAT DID YOU APPLY TO?</b></div>{m.recent.map((a,i)=><article key={a.id}><span>{String(i+1).padStart(2,'0')}</span><div><strong>{a.company}</strong><p>{a.role}</p></div><em>{status(a)}</em><b>{a.score===null?'N/A':a.score.toFixed(1)}</b>{a.url?<a href={a.url} target="_blank" rel="noreferrer"><ArrowUpRight size={20}/></a>:<ArrowRight size={20}/>}</article>)}</section>
       <section className={styles.brutalNext}><div className={styles.brutalSectionHead}><span>04 / NEXT</span><b>DO THE THING.</b></div>{m.followups.slice(0,5).map((a,i)=><article key={a.id}><span>{String(i+1).padStart(2,'0')}</span><div><strong>{a.nextAction}</strong><p>{a.company}</p></div><time>{a.dueDate?fmt(a.dueDate):'NO DATE'}</time></article>)}{!m.followups.length&&<p>NOTHING QUEUED. SUSPICIOUSLY PEACEFUL.</p>}</section>
       <section className={styles.brutalChartBlock}><span className={styles.brutalLabel}>05 / 14-DAY OUTPUT</span><div className={styles.brutalChart}>{m.daily.map(d=><div key={d.key}><i style={{height:Math.max(3,d.count/m.maxDaily*100)+'%'}}/><span>{d.count}</span></div>)}</div><div className={styles.brutalChartCaption}><span>{m.daily[0]?.label}</span><b>APPLICATION VELOCITY</b><span>{m.daily.at(-1)?.label}</span></div></section>
       <section className={styles.brutalBlue}><TrendingUp size={32}/><span>STRONG FITS</span><strong>{m.strong}</strong><p>{m.rated?pct(m.strong,m.rated)+'% OF RATED APPLICATIONS ARE 4.0+':'NO RATED APPLICATIONS YET'}</p></section>
-    </main>
-    <footer className={styles.brutalFooter}><span>CAREER TRACKER / CONCEPT 03</span><span>LOUD, USEFUL, UNAPOLOGETIC.</span></footer>
+    </div>
+    <div className={styles.brutalFooter}><span>CAREER TRACKER / CONCEPT 03</span><span>LOUD, USEFUL, UNAPOLOGETIC.</span></div>
   </div>;
 }
 
