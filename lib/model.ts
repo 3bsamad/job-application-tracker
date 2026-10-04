@@ -3,8 +3,8 @@ export type Job = {id:string;company:string;role:string;url:string;appliedDate:s
 
 export const types=['Update','Screening call','Technical assessment','Interview','Offer','Rejected','Withdrawn'];
 export const processStates=['Planned','Scheduled','Completed','Passed','Unsuccessful','Cancelled'] as const;
-export const offerStates=['Received','Accepted','Declined','Cancelled'] as const;
-export const states:string[]=[...processStates,...offerStates,'Recorded','Pending'];
+export const offerStates=['Received','Accepted','Declined','Rescinded'] as const;
+export const states:string[]=[...processStates,...offerStates,'Recorded','Pending','Cancelled'];
 export const bands=['Excellent','Good','Moderate','Low','Unrated'];
 
 export const uid=()=>globalThis.crypto.randomUUID();
@@ -21,29 +21,31 @@ export function defaultEventState(type:string){
  return 'Recorded';
 }
 export function normalizeEventState(type:string,state:string){
- if(state==='Cancelled')return 'Cancelled';
+ if(type==='Update'||type==='Rejected'||type==='Withdrawn')return 'Recorded';
  if(['Screening call','Technical assessment','Interview'].includes(type)){
   if(state==='Pending')return 'Planned';
   return processStates.includes(state as typeof processStates[number])?state:'Scheduled';
  }
  if(type==='Offer'){
+  if(state==='Cancelled')return 'Rescinded';
   if(offerStates.includes(state as typeof offerStates[number]))return state;
   return 'Received';
  }
  return 'Recorded';
 }
-export const eventStateLabel=(e:Event)=>e.state==='Cancelled'?'Cancelled':eventStateOptions(e.type).length?normalizeEventState(e.type,e.state):'';
+export const eventStateLabel=(e:Event)=>eventStateOptions(e.type).length?normalizeEventState(e.type,e.state):'';
 
 export const ordered=(a:Job)=>a.events.map((e,i)=>({...e,order:i})).sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.order-b.order);
 
 export const status=(a:Job)=>{
  const events=ordered(a).filter(e=>e.state!=='Cancelled');
- const terminal=events.filter(e=>e.type==='Rejected'||e.type==='Withdrawn'||e.type==='Offer'&&['Accepted','Declined'].includes(normalizeEventState(e.type,e.state)));
+ const terminal=events.filter(e=>e.type==='Rejected'||e.type==='Withdrawn'||e.type==='Offer'&&['Accepted','Declined','Rescinded'].includes(normalizeEventState(e.type,e.state)));
  if(terminal.length){
   const last=terminal.at(-1)!;
   if(last.type==='Rejected')return 'Rejected';
   if(last.type==='Withdrawn')return 'Withdrawn';
-  return normalizeEventState(last.type,last.state)==='Accepted'?'Accepted':'Withdrawn';
+  const offerState=normalizeEventState(last.type,last.state);
+  return offerState==='Accepted'?'Accepted':offerState==='Rescinded'?'Rejected':'Withdrawn';
  }
  const unsuccessful=[...events].reverse().find(e=>['Screening call','Technical assessment','Interview'].includes(e.type)&&normalizeEventState(e.type,e.state)==='Unsuccessful');
  if(unsuccessful)return 'Rejected';
