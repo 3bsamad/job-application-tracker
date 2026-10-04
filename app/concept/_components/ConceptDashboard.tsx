@@ -78,46 +78,118 @@ function HeaderIndex({no,label,tail}:{no:string;label:string;tail:string}){
   return <div className={styles.sectionIndex}><span>{no}</span><span>{label}</span><span>{tail}</span></div>;
 }
 
+type EditorialTheme='archive'|'signal'|'night';
+
 function Editorial({jobs}:{jobs:Job[]}){
   const m=useMetrics(jobs);
-  return <div className={styles.editorial}>
+  const [theme,setTheme]=useState<EditorialTheme>('archive');
+  const themeClass=theme==='signal'?styles.themeSignal:theme==='night'?styles.themeNight:styles.themeArchive;
+  const themeLabel=theme==='signal'?'SIGNAL EDITION':theme==='night'?'NIGHT PRESS':'ARCHIVE EDITION';
+  return <div className={[styles.editorial,themeClass].join(' ')}>
     <ConceptNav variant="editorial"/>
+
+    <div className={styles.editorialMasthead}>
+      <span>CAREER INDEX®</span>
+      <span>PERSONAL EDITION / 2026</span>
+      <span>{m.total.toString().padStart(4,'0')} RECORDS</span>
+    </div>
+
     <header className={styles.editorialHero}>
-      <div className={styles.editorialKicker}><span>CAREER ARCHIVE / 2026</span><span>{m.total.toString().padStart(4,'0')} RECORDS</span></div>
+      <div className={styles.editorialKicker}>
+        <div><span className={styles.liveDot}/>LIVE WORKSPACE</div>
+        <div className={styles.editorialThemes} aria-label="Editorial visual theme">
+          {(['archive','signal','night'] as EditorialTheme[]).map((t,i)=>
+            <button key={t} aria-pressed={theme===t} onClick={()=>setTheme(t)}>
+              <i>{String(i+1).padStart(2,'0')}</i>
+              <span>{t==='archive'?'Archive':t==='signal'?'Signal':'Night'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className={styles.editorialTitleRow}>
-        <h1>JOB<br/>SEARCH</h1>
+        <div className={styles.editorialTitleBlock}>
+          <span className={styles.issueMark}>ISSUE 04 / {themeLabel}</span>
+          <h1>JOB<br/>SEARCH</h1>
+          <div className={styles.titleUnderline}><i/><span>TRACK. FOLLOW UP. MOVE.</span></div>
+        </div>
+
         <div className={styles.editorialHeroAside}>
-          <p>A working index of applications, conversations and momentum.</p>
+          <p>A living record of applications, conversations and momentum.</p>
           <div className={styles.editorialHeroStats}>
             <div><strong>{m.active}</strong><span>live processes</span></div>
             <div><strong>{m.interviews}</strong><span>interviews</span></div>
             <div><strong>{m.responseRate}%</strong><span>response rate</span></div>
           </div>
+          <div className={styles.editorialPullQuote}>
+            <span>NOW</span>
+            <strong>{m.followups.length?m.followups[0].nextAction:'Keep the pipeline moving.'}</strong>
+            <small>{m.followups.length?m.followups[0].company:'No urgent follow-up queued'}</small>
+          </div>
         </div>
       </div>
+
       <div className={styles.editorialRibbon}>
-        <span>THIS MONTH <b>{m.thisMonth}</b></span><span>STRONG FITS <b>{m.strong}</b></span><span>OFFERS <b>{m.offers}</b></span><span>REJECTED <b>{m.rejected}</b></span>
+        <span>THIS MONTH <b>{m.thisMonth}</b></span>
+        <span>STRONG FITS <b>{m.strong}</b></span>
+        <span>OFFERS <b>{m.offers}</b></span>
+        <span>REJECTED <b>{m.rejected}</b></span>
       </div>
     </header>
+
     <main className={styles.editorialGrid}>
       <section className={styles.editorialActivity}>
         <HeaderIndex no="01" label="APPLICATION ACTIVITY" tail="LAST 14 DAYS"/>
-        <div className={styles.editorialChart}>{m.daily.map((d,i)=><div key={d.key} className={styles.editorialBarCol}><div className={styles.editorialBarRail}><i style={{height:Math.max(4,d.count/m.maxDaily*100)+'%'}}/></div><small>{[0,4,9,13].includes(i)?d.label:''}</small></div>)}</div>
+        <div className={styles.editorialChart}>
+          {m.daily.map((d,i)=><div key={d.key} className={styles.editorialBarCol}>
+            <div className={styles.editorialBarRail}><i style={{height:Math.max(4,d.count/m.maxDaily*100)+'%'}}/></div>
+            <small>{[0,4,9,13].includes(i)?d.label:''}</small>
+          </div>)}
+        </div>
+        <div className={styles.chartCaption}>
+          <span>APPLICATION VELOCITY</span>
+          <strong>{m.thisMonth} sent this month</strong>
+        </div>
       </section>
+
       <section className={styles.editorialStages}>
         <HeaderIndex no="02" label="CURRENT STAGES" tail="STATUS INDEX"/>
-        <div className={styles.stageLedger}>{m.stages.map((s,i)=><div key={s.label}><span>{String(i+1).padStart(2,'0')}</span><strong>{s.label}</strong><b>{String(s.count).padStart(2,'0')}</b></div>)}</div>
+        <div className={styles.stageLedger}>{m.stages.map((s,i)=><div key={s.label}>
+          <span>{String(i+1).padStart(2,'0')}</span>
+          <strong>{s.label}</strong>
+          <i style={{width:Math.max(7,s.count/Math.max(1,m.total)*100)+'%'}}/>
+          <b>{String(s.count).padStart(2,'0')}</b>
+        </div>)}</div>
       </section>
+
       <section className={styles.editorialRecent}>
         <HeaderIndex no="03" label="RECENT APPLICATIONS" tail="LIVE ARCHIVE"/>
-        <div className={styles.editorialList}>{m.recent.map((a,i)=><article key={a.id}><span>{String(i+1).padStart(2,'0')}</span><div><strong>{a.company}</strong><p>{a.role}</p></div><b>{a.score===null?'—':a.score.toFixed(1)}</b><em>{status(a)}</em><time>{fmt(a.appliedDate)}</time>{a.url&&<a href={a.url} target="_blank" rel="noreferrer" aria-label={'Open '+a.company}><ArrowUpRight size={16}/></a>}</article>)}</div>
+        <div className={styles.editorialList}>{m.recent.map((a,i)=><article key={a.id}>
+          <span>{String(i+1).padStart(2,'0')}</span>
+          <div><strong>{a.company}</strong><p>{a.role}</p></div>
+          <b>{a.score===null?'—':a.score.toFixed(1)}</b>
+          <em data-status={status(a)}>{status(a)}</em>
+          <time>{fmt(a.appliedDate)}</time>
+          {a.url&&<a href={a.url} target="_blank" rel="noreferrer" aria-label={'Open '+a.company}><ArrowUpRight size={16}/></a>}
+        </article>)}</div>
       </section>
+
       <section className={styles.editorialActions}>
         <HeaderIndex no="04" label="NEXT ACTIONS" tail={m.followups.length.toString().padStart(2,'0')+' OPEN'}/>
-        <div className={styles.editorialActionStack}>{m.followups.slice(0,5).map((a,i)=><article key={a.id}><span>{String(i+1).padStart(2,'0')}</span><div><strong>{a.nextAction}</strong><p>{a.company} · {a.role}</p></div><time>{a.dueDate?fmt(a.dueDate):'NO DATE'}</time></article>)}{!m.followups.length&&<p>No follow-ups queued.</p>}</div>
+        <div className={styles.editorialActionStack}>{m.followups.slice(0,5).map((a,i)=><article key={a.id}>
+          <span>{String(i+1).padStart(2,'0')}</span>
+          <div><strong>{a.nextAction}</strong><p>{a.company} · {a.role}</p></div>
+          <time>{a.dueDate?fmt(a.dueDate):'NO DATE'}</time>
+        </article>)}{!m.followups.length&&<p>No follow-ups queued.</p>}</div>
+        <div className={styles.actionFooter}><span>QUEUE / {String(m.followups.length).padStart(2,'0')}</span><ArrowRight size={14}/></div>
       </section>
     </main>
-    <footer className={styles.editorialFooter}><span>CAREER TRACKER / CONCEPT 01</span><span>EDITORIAL SYSTEM</span></footer>
+
+    <footer className={styles.editorialFooter}>
+      <span>CAREER TRACKER / CONCEPT 01</span>
+      <span>{themeLabel}</span>
+      <span>EDITORIAL SYSTEM</span>
+    </footer>
   </div>;
 }
 
