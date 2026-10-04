@@ -2,8 +2,8 @@
 
 import {useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp} from 'lucide-react';
-import {Job,active,reached,replied,status} from '@/lib/model';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,SlidersHorizontal,X,Check} from 'lucide-react';
+import {Job,active,band,ordered,reached,replied,status,uid} from '@/lib/model';
 import styles from '../concept.module.css';
 
 export type ConceptVariant='editorial'|'retro'|'brutalist';
@@ -15,7 +15,9 @@ const fmt=(s:string)=>s?new Date(s+'T12:00:00').toLocaleDateString('en-GB',{day:
 
 function useTracker(){
   const [jobs,setJobs]=useState<Job[]>([]);
+  const [revision,setRevision]=useState(0);
   const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
   useEffect(()=>{
     let mounted=true;
@@ -24,13 +26,23 @@ function useTracker(){
         const r=await fetch('/api/tracker');
         const d=await r.json() as TrackerResponse;
         if(!r.ok)throw new Error(d.error||'Could not load tracker data.');
-        if(mounted)setJobs(d.applications);
+        if(mounted){setJobs(d.applications);setRevision(d.revision)}
       }catch(e){if(mounted)setError((e as Error).message)}
       finally{if(mounted)setLoading(false)}
     })();
     return()=>{mounted=false};
   },[]);
-  return {jobs,loading,error};
+  async function persist(next:Job[]){
+    setSaving(true);setError('');
+    try{
+      const r=await fetch('/api/tracker',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({applications:next,revision})});
+      const d=await r.json() as TrackerResponse;
+      if(!r.ok)throw new Error(d.error||'Could not save tracker data.');
+      setJobs(d.applications);setRevision(d.revision);return true;
+    }catch(e){setError((e as Error).message);return false}
+    finally{setSaving(false)}
+  }
+  return {jobs,loading,error,saving,persist};
 }
 
 function useMetrics(jobs:Job[]){
