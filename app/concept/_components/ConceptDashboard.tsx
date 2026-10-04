@@ -1,9 +1,9 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,SlidersHorizontal,X,Check} from 'lucide-react';
-import {Job,active,band,ordered,reached,replied,status,uid} from '@/lib/model';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check} from 'lucide-react';
+import {Job,active,ordered,reached,replied,status,uid} from '@/lib/model';
 import styles from '../concept.module.css';
 
 export type ConceptVariant='editorial'|'retro'|'brutalist';
@@ -111,7 +111,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
     {label:'Okay',range:'3.0–3.9',count:jobs.filter(a=>a.score!==null&&a.score>=3&&a.score<4).length},
     {label:'Low',range:'< 3.0',count:jobs.filter(a=>a.score!==null&&a.score<3).length},
   ];
-  async function addApplication(e:React.FormEvent){
+  async function addApplication(e:FormEvent){
     e.preventDefault();
     const score=draft.score===''?null:Number(draft.score);
     const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:today(),score:Number.isFinite(score as number)?score:null,notes:'',events:[],nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};
