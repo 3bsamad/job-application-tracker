@@ -273,6 +273,21 @@
   .editorialUtility>div{grid-template-columns:1fr}.editorialFooter{grid-template-columns:1fr}.editorialFooter span:last-child{display:none}
 }
 
+
+/* Editorial loading / error states */
+.editorialLoading{min-height:100vh;background:#f1e7d8;color:#111;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.editorialLoading .switcher{background:rgba(241,231,216,.96);border-bottom:1px solid #111;backdrop-filter:blur(10px)}
+.editorialLoadingShell{max-width:1120px;margin:clamp(70px,11vh,130px) auto 0;padding:0 32px}
+.editorialLoadingMast{display:flex;justify-content:space-between;gap:20px;border-block:1px solid #111;padding:12px 0;font:10px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em}
+.editorialLoadingGrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);border-bottom:1px solid #111}
+.editorialLoadingGrid>div:first-child{padding:34px 34px 38px 0;border-right:1px solid #111}.editorialLoadingGrid>div:first-child>span{display:inline-block;background:#ffd63b;padding:7px 9px;font:9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.07em}
+.editorialLoadingGrid strong{display:block;max-width:680px;margin-top:20px;font-size:clamp(42px,6vw,78px);line-height:.9;letter-spacing:-.065em}.editorialLoadingGrid p{max-width:560px;margin:20px 0 0;font-size:14px;line-height:1.55;color:#5f584f}
+.editorialLoadingGrid button{margin-top:24px;min-height:40px;border:1px solid #111;background:#355cff;color:#fff;padding:0 13px;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}.editorialLoadingGrid button:hover{transform:translate(-1px,-1px);box-shadow:2px 2px 0 #111}
+.editorialLoadingGrid>div:last-child{display:grid;align-content:end;gap:12px;padding:34px}.editorialLoadingGrid>div:last-child i{display:block;height:18px;border:1px solid #111;background:#fff8eb;overflow:hidden;position:relative}.editorialLoadingGrid>div:last-child i:after{content:"";position:absolute;inset:0 auto 0 0;width:42%;background:#355cff;animation:editorialLoad 1.35s cubic-bezier(.4,0,.2,1) infinite alternate}.editorialLoadingGrid>div:last-child i:nth-child(2):after{width:67%;background:#ff5d49;animation-delay:-.3s}.editorialLoadingGrid>div:last-child i:nth-child(3):after{width:28%;background:#ffd63b;animation-delay:-.6s}.editorialLoadingGrid>div:last-child i:nth-child(4):after{width:53%;background:#111;animation-delay:-.9s}
+@keyframes editorialLoad{from{transform:translateX(-16%)}to{transform:translateX(95%)}}
+@media(prefers-reduced-motion:reduce){.editorialLoadingGrid>div:last-child i:after{animation:none;transform:none}}
+@media(max-width:700px){.editorialLoadingShell{margin-top:54px;padding:0 16px}.editorialLoadingGrid{grid-template-columns:1fr}.editorialLoadingGrid>div:first-child{padding:28px 0;border-right:0;border-bottom:1px solid #111}.editorialLoadingGrid strong{font-size:48px}.editorialLoadingGrid>div:last-child{padding:24px 0 0}.editorialLoadingMast span:last-child{text-align:right}}
+
 /* 02 — Career OS */
 .retro{
   min-height:100vh;
