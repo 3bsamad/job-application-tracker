@@ -3,7 +3,7 @@ export type Job = {id:string;company:string;role:string;url:string;appliedDate:s
 
 export const types=['Update','Screening call','Technical assessment','Interview','Offer','Rejected','Withdrawn'];
 export const processStates=['Planned','Scheduled','Completed','Passed','Unsuccessful','Cancelled'] as const;
-export const offerStates=['Received','Accepted','Declined'] as const;
+export const offerStates=['Received','Accepted','Declined','Cancelled'] as const;
 export const states:string[]=[...processStates,...offerStates,'Recorded','Pending'];
 export const bands=['Excellent','Good','Moderate','Low','Unrated'];
 
@@ -21,6 +21,7 @@ export function defaultEventState(type:string){
  return 'Recorded';
 }
 export function normalizeEventState(type:string,state:string){
+ if(state==='Cancelled')return 'Cancelled';
  if(['Screening call','Technical assessment','Interview'].includes(type)){
   if(state==='Pending')return 'Planned';
   return processStates.includes(state as typeof processStates[number])?state:'Scheduled';
@@ -31,7 +32,7 @@ export function normalizeEventState(type:string,state:string){
  }
  return 'Recorded';
 }
-export const eventStateLabel=(e:Event)=>eventStateOptions(e.type).length?normalizeEventState(e.type,e.state):'';
+export const eventStateLabel=(e:Event)=>e.state==='Cancelled'?'Cancelled':eventStateOptions(e.type).length?normalizeEventState(e.type,e.state):'';
 
 export const ordered=(a:Job)=>a.events.map((e,i)=>({...e,order:i})).sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.order-b.order);
 
