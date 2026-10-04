@@ -412,6 +412,17 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
         <Window title="TODAY.widget" className={styles.osWidget}>
           <div className={styles.osWidgetClock}><Clock3 size={16}/><span>CAREER DESKTOP</span></div><strong>{m.followups.length}</strong><small>ACTIONS IN QUEUE</small>
         </Window>
+        <div className={styles.osFloatAlert} aria-hidden="true">
+          <div><span>REMINDER</span><b>×</b></div>
+          <p>PREP THE INTERVIEW?</p>
+          <button>OK</button>
+        </div>
+        <div className={styles.osMiniPlayer} aria-hidden="true">
+          <div><span>FOCUS_MODE.wav</span><b>×</b></div>
+          <div className={styles.osMiniScreen}>CAREER FM <i>▶</i></div>
+          <div className={styles.osEqualizer}>{[7,11,5,14,9,16,6,12,8,15,5,10].map((h,i)=><i key={i} style={{height:h}}/>)}</div>
+        </div>
+        <div className={styles.osDesktopStamp} aria-hidden="true">ONLINE<br/><b>2026</b></div>
       </div>}
 
       {view==='applications'&&<div className={styles.osWorkspace}>
@@ -424,6 +435,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
             <button className={styles.osPrimary} onClick={()=>setAdding(true)}><Plus size={13}/> NEW</button>
           </div>
           <div className={styles.osFilterbar}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['rejected','Rejected']] as [RetroFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}<span>{filtered.length} OF {m.total} RECORDS</span></div>
+          <div className={styles.osFinderStatus}><span>◼ INDEXED</span><span>VIEW: LIST</span><span>DISK: LOCAL</span><b>{theme.toUpperCase()} MODE</b></div>
           <div className={styles.osTable}>
             <div className={styles.osTableHead}><span>NAME</span><span>FIT</span><span>STATE</span><span>APPLIED</span><span>NEXT</span></div>
             {filtered.map(a=><button className={styles.osTableRow} key={a.id} onClick={()=>openJob(a)}><span><BriefcaseBusiness size={14}/><div><strong>{a.company}</strong><small>{a.role}</small></div></span><b>{a.score===null?'--':a.score.toFixed(1)}</b><em>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span>{a.nextAction||'Awaiting response'} <ArrowRight size={13}/></span></button>)}
@@ -442,6 +454,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
       {view==='statistics'&&<div className={styles.osWorkspace}>
         <Window title="CAREER_REPORTS.app" className={styles.osWorkspaceWindow}>
           <div className={styles.osFinderToolbar}><button onClick={()=>setView('desktop')}>← DESKTOP</button><span className={styles.osToolbarTitle}>SYSTEM REPORT / CURRENT DATABASE</span><button onClick={exportCSV}><Download size={13}/> EXPORT</button></div>
+          <div className={styles.osReportBanner}><span>CAREER ANALYTICS SYSTEM</span><b>LIVE</b><i/></div>
           <div className={styles.osReportGrid}>
             <div className={styles.osReportHero}><span>RESPONSE RATE</span><strong>{m.responseRate}%</strong><div><i style={{width:m.responseRate+'%'}}/></div><small>{m.responses} replies from {m.total} applications</small></div>
             <div className={styles.osReportHero}><span>INTERVIEW REACH</span><strong>{pct(m.interviews,m.total)}%</strong><div><i style={{width:pct(m.interviews,m.total)+'%'}}/></div><small>{m.interviews} applications reached interview</small></div>
