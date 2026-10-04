@@ -7,6 +7,7 @@ import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventState
 import {useTrackerData} from '@/hooks/use-tracker-data';
 import {buildTrackerAnalytics,localISODate,percentNumber} from '@/lib/tracker-analytics';
 import {backupFilename,backupJSON,downloadText,simpleCSV} from '@/lib/tracker-export';
+import {appendTimelineEvent,changeTimelineEventType,removeApplication,removeTimelineEvent,updateTimelineEvent,upsertApplication} from '@/lib/tracker-actions';
 import styles from '../concept.module.css';
 
 export type ConceptVariant='editorial'|'retro'|'brutalist';
@@ -123,20 +124,20 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   function openJob(a:Job){setSelected(a);setEditing(null);setDeleteConfirm(false)}
   function beginEdit(a:Job){setEditing(structuredClone(a))}
   const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
-  const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
-  const editEventType=(id:string,type:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,type,state:defaultEventState(type)}:e)}:null);
-  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}:null)}
-  function removeEditEvent(id:string){setEditing(d=>d?{...d,events:d.events.filter(e=>e.id!==id)}:null)}
+  const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?updateTimelineEvent(d,id,key,value):null);
+  const editEventType=(id:string,type:string)=>setEditing(d=>d?changeTimelineEventType(d,id,type):null);
+  function addEditEvent(){setEditing(d=>d?appendTimelineEvent(d):null)}
+  function removeEditEvent(id:string){setEditing(d=>d?removeTimelineEvent(d,id):null)}
   async function saveEdit(e:FormEvent){
     e.preventDefault(); if(!editing)return;
     const score=editing.score===null?null:Number(editing.score);
     if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;
     const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};
-    if(await persist(jobs.map(a=>a.id===updated.id?updated:a))){setSelected(updated);setEditing(null)}
+    if(await persist(upsertApplication(jobs,updated))){setSelected(updated);setEditing(null)}
   }
   async function deleteApplication(){
     if(!selected)return;
-    if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}
+    if(await persist(removeApplication(jobs,selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}
   }
   async function addApplication(e:FormEvent){
     e.preventDefault();
@@ -347,12 +348,12 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   function openJob(a:Job){setSelected(a);setEditing(null);setDeleteConfirm(false)}
   function beginEdit(a:Job){setEditing(structuredClone(a))}
   const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
-  const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
-  const editEventType=(id:string,type:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,type,state:defaultEventState(type)}:e)}:null);
-  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}:null)}
-  function removeEditEvent(id:string){setEditing(d=>d?{...d,events:d.events.filter(e=>e.id!==id)}:null)}
-  async function saveEdit(e:FormEvent){e.preventDefault();if(!editing)return;const score=editing.score===null?null:Number(editing.score);if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};if(await persist(jobs.map(a=>a.id===updated.id?updated:a))){setSelected(updated);setEditing(null)}}
-  async function deleteApplication(){if(!selected)return;if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}}
+  const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?updateTimelineEvent(d,id,key,value):null);
+  const editEventType=(id:string,type:string)=>setEditing(d=>d?changeTimelineEventType(d,id,type):null);
+  function addEditEvent(){setEditing(d=>d?appendTimelineEvent(d):null)}
+  function removeEditEvent(id:string){setEditing(d=>d?removeTimelineEvent(d,id):null)}
+  async function saveEdit(e:FormEvent){e.preventDefault();if(!editing)return;const score=editing.score===null?null:Number(editing.score);if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};if(await persist(upsertApplication(jobs,updated))){setSelected(updated);setEditing(null)}}
+  async function deleteApplication(){if(!selected)return;if(await persist(removeApplication(jobs,selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}}
   async function addApplication(e:FormEvent){e.preventDefault();const score=draft.score===''?null:Number(draft.score);const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:[],nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};if(!job.company||!job.role||score!==null&&(score<0||score>5))return;if(await persist([job,...jobs])){setAdding(false);setDraft({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});setView('applications')}}
 
   return <div className={[styles.retro,themeClass].join(' ')}>
