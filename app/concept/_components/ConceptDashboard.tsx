@@ -2,8 +2,8 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown,Clock3} from 'lucide-react';
-import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,states} from '@/lib/model';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
+import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
 import styles from '../concept.module.css';
 
 export type ConceptVariant='editorial'|'retro'|'brutalist';
@@ -58,9 +58,9 @@ function useMetrics(jobs:Job[]){
     const strong=jobs.filter(a=>a.score!==null&&a.score>=4);
     const month=today().slice(0,7);
     const thisMonth=jobs.filter(a=>a.appliedDate.startsWith(month)).length;
-    const followups=jobs.filter(a=>!['Rejected','Withdrawn'].includes(status(a))&&a.nextAction).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+    const followups=jobs.filter(a=>active(a)&&a.nextAction).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
     const recent=[...jobs].sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate)).slice(0,6);
-    const stages=['Applied','In review','Screening call','Technical assessment','Interview','Offer','Rejected','Withdrawn']
+    const stages=['Applied','In review','Screening call','Technical assessment','Interview','Offer','Accepted','Rejected','Withdrawn']
       .map(label=>({label,count:jobs.filter(a=>status(a)===label).length}))
       .filter(x=>x.count>0||['Applied','Interview','Offer'].includes(x.label));
     const daily=Array.from({length:14},(_,i)=>{
@@ -131,7 +131,7 @@ function HeaderIndex({no,label,tail}:{no:string;label:string;tail:string}){
 }
 
 type EditorialView='overview'|'applications'|'pipeline'|'statistics';
-type ArchiveFilter='all'|'active'|'strong'|'interview'|'rejected';
+type ArchiveFilter='all'|'active'|'strong'|'interview'|'accepted'|'rejected';
 
 function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<boolean>;saving:boolean}){
   const m=useMetrics(jobs);
@@ -157,7 +157,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const themeLabel=theme==='signal'?'SIGNAL EDITION':theme==='night'?'NIGHT PRESS':'ARCHIVE EDITION';
   const filtered=jobs.filter(a=>{
     const matches=(a.company+' '+a.role+' '+a.notes+' '+a.nextAction+' '+a.events.map(e=>e.label+' '+e.type+' '+e.notes).join(' ')).toLowerCase().includes(query.toLowerCase());
-    const passes=filter==='all'||(filter==='active'&&active(a))||(filter==='strong'&&a.score!==null&&a.score>=4)||(filter==='interview'&&reached(a,'Interview'))||(filter==='rejected'&&status(a)==='Rejected');
+    const passes=filter==='all'||(filter==='active'&&active(a))||(filter==='strong'&&a.score!==null&&a.score>=4)||(filter==='interview'&&reached(a,'Interview'))||(filter==='accepted'&&status(a)==='Accepted')||(filter==='rejected'&&status(a)==='Rejected');
     return matches&&passes;
   }).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate));
   const byStage=m.stages.map(s=>({stage:s.label,jobs:jobs.filter(a=>status(a)===s.label).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate))}));
@@ -186,7 +186,8 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   function beginEdit(a:Job){setEditing(structuredClone(a))}
   const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
   const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
-  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:'Scheduled',notes:''}]}:null)}
+  const editEventType=(id:string,type:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,type,state:defaultEventState(type)}:e)}:null);
+  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}:null)}
   function removeEditEvent(id:string){setEditing(d=>d?{...d,events:d.events.filter(e=>e.id!==id)}:null)}
   async function saveEdit(e:FormEvent){
     e.preventDefault(); if(!editing)return;
@@ -259,7 +260,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
 
     {view==='applications'&&<div className={styles.editorialWorkspace}>
       <div className={styles.workspaceToolbar}><label className={styles.editorialSearch}><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role, notes…"/></label><span>{filtered.length} / {m.total} RECORDS</span><button className={styles.editorialPrimary} disabled={saving} onClick={()=>setAdding(true)}><Plus size={14}/> ADD APPLICATION</button></div>
-      <div className={styles.archiveFilters}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['rejected','Rejected']] as [ArchiveFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
+      <div className={styles.archiveFilters}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['accepted','Accepted'],['rejected','Rejected']] as [ArchiveFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
       <section className={styles.archiveTable}>
         <div className={styles.archiveHead}><span>NO.</span><span>COMPANY / ROLE</span><span>FIT</span><span>STAGE</span><span>APPLIED</span><span>NEXT</span></div>
         {filtered.map((a,i)=><button key={a.id} className={styles.archiveRow} onClick={()=>openJob(a)}><span>{String(i+1).padStart(3,'0')}</span><span><strong title={a.company}>{a.company}</strong><small title={a.role}>{a.role}</small></span><b>{a.score===null?'—':a.score.toFixed(1)}</b><em title={status(a)}>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span><small title={a.nextAction||'Awaiting response'}>{a.nextAction||'Awaiting response'}</small><ArrowRight size={14}/></span></button>)}
@@ -288,7 +289,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
           </div>
           <h2 title={selected.company}>{selected.company}</h2><p className={styles.detailRole} title={selected.role}>{selected.role}</p>
           <div className={styles.detailMeta}><span><small>FIT</small><b>{selected.score===null?'—':selected.score.toFixed(1)}</b></span><span><small>STAGE</small><b>{status(selected)}</b></span><span><small>APPLIED</small><b>{fmt(selected.appliedDate)}</b></span></div>
-          <section><h3>PROCESS</h3><div className={styles.detailTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{e.state} · {e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
+          <section><h3>PROCESS</h3><div className={styles.detailTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{eventStateLabel(e)?eventStateLabel(e)+' · ':''}{e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
           <section><h3>NEXT ACTION</h3><p>{selected.nextAction||'No next action set.'}</p>{selected.dueDate&&<time>{fmt(selected.dueDate)}</time>}</section>
           <section><h3>NOTES</h3><p>{selected.notes||'No notes yet.'}</p></section>
           <div className={styles.detailBottomActions}>
@@ -306,8 +307,8 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
           <div className={styles.timelineEditorHead}><span>PROCESS TIMELINE</span><button type="button" onClick={addEditEvent}><Plus size={12}/> ADD EVENT</button></div>
           <div className={styles.timelineEditor}>{editing.events.map((event,i)=><div key={event.id} className={styles.timelineEditRow}>
             <span>{String(i+1).padStart(2,'0')}</span>
-            <select value={event.type} onChange={e=>editEvent(event.id,'type',e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>
-            <select value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select>
+            <select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>
+            {eventStateOptions(event.type).length?<select aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.eventStateStatic} title={event.type==='Update'?'Informational update; no outcome needed.':'This event is itself the outcome.'}>RECORDED</span>}
             <input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/>
             <input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/>
             <button type="button" aria-label="Remove event" onClick={()=>removeEditEvent(event.id)}><X size={13}/></button>
@@ -343,7 +344,7 @@ function Window({title,children,className=''}:{title:string;children:React.React
 }
 
 type RetroView='desktop'|'applications'|'pipeline'|'statistics';
-type RetroFilter='all'|'active'|'strong'|'interview'|'rejected';
+type RetroFilter='all'|'active'|'strong'|'interview'|'accepted'|'rejected';
 
 function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<boolean>;saving:boolean}){
   const m=useMetrics(jobs);
@@ -367,7 +368,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   const themeClass=theme==='classic'?styles.retroClassic:theme==='midnight'?styles.retroMidnight:styles.retroVapor;
   const filtered=jobs.filter(a=>{
     const text=(a.company+' '+a.role+' '+a.notes+' '+a.nextAction+' '+a.events.map(e=>e.type+' '+e.label+' '+e.notes).join(' ')).toLowerCase().includes(query.toLowerCase());
-    const pass=filter==='all'||(filter==='active'&&active(a))||(filter==='strong'&&a.score!==null&&a.score>=4)||(filter==='interview'&&reached(a,'Interview'))||(filter==='rejected'&&status(a)==='Rejected');
+    const pass=filter==='all'||(filter==='active'&&active(a))||(filter==='strong'&&a.score!==null&&a.score>=4)||(filter==='interview'&&reached(a,'Interview'))||(filter==='accepted'&&status(a)==='Accepted')||(filter==='rejected'&&status(a)==='Rejected');
     return text&&pass;
   }).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate));
   const byStage=m.stages.map(s=>({stage:s.label,jobs:jobs.filter(a=>status(a)===s.label).sort((a,b)=>b.appliedDate.localeCompare(a.appliedDate))}));
@@ -380,7 +381,8 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   function beginEdit(a:Job){setEditing(structuredClone(a))}
   const editField=(key:keyof Job,value:any)=>setEditing(d=>d?{...d,[key]:value}:null);
   const editEvent=(id:string,key:keyof Event,value:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,[key]:value}:e)}:null);
-  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:'Scheduled',notes:''}]}:null)}
+  const editEventType=(id:string,type:string)=>setEditing(d=>d?{...d,events:d.events.map(e=>e.id===id?{...e,type,state:defaultEventState(type)}:e)}:null);
+  function addEditEvent(){setEditing(d=>d?{...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}:null)}
   function removeEditEvent(id:string){setEditing(d=>d?{...d,events:d.events.filter(e=>e.id!==id)}:null)}
   async function saveEdit(e:FormEvent){e.preventDefault();if(!editing)return;const score=editing.score===null?null:Number(editing.score);if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};if(await persist(jobs.map(a=>a.id===updated.id?updated:a))){setSelected(updated);setEditing(null)}}
   async function deleteApplication(){if(!selected)return;if(await persist(jobs.filter(a=>a.id!==selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}}
@@ -421,20 +423,6 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           {m.followups.slice(0,6).map(a=><button className={styles.todoRow} key={a.id} onClick={()=>openJob(a)}><span/><div><strong>{a.nextAction}</strong><small>{a.company} / {a.role}</small></div><time>{a.dueDate?fmt(a.dueDate):'-- ---'}</time></button>)}
           {!m.followups.length&&<div className={styles.osEmpty}>NO PENDING ACTIONS</div>}
         </Window>
-        <Window title="TODAY.widget" className={styles.osWidget}>
-          <div className={styles.osWidgetClock}><Clock3 size={16}/><span>CAREER DESKTOP</span></div><strong>{m.followups.length}</strong><small>ACTIONS IN QUEUE</small>
-        </Window>
-        <div className={styles.osFloatAlert} aria-hidden="true">
-          <div><span>REMINDER</span><b>×</b></div>
-          <p>PREP THE INTERVIEW?</p>
-          <button>OK</button>
-        </div>
-        <div className={styles.osMiniPlayer} aria-hidden="true">
-          <div><span>FOCUS_MODE.wav</span><b>×</b></div>
-          <div className={styles.osMiniScreen}>CAREER FM <i>▶</i></div>
-          <div className={styles.osEqualizer}>{[7,11,5,14,9,16,6,12,8,15,5,10].map((h,i)=><i key={i} style={{height:h}}/>)}</div>
-        </div>
-        <div className={styles.osDesktopStamp} aria-hidden="true">ONLINE<br/><b>2026</b></div>
       </div>}
 
       {view==='applications'&&<div className={styles.osWorkspace}>
@@ -446,7 +434,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
             <button onClick={exportCSV}><Download size={13}/> CSV</button>
             <button className={styles.osPrimary} onClick={()=>setAdding(true)}><Plus size={13}/> NEW</button>
           </div>
-          <div className={styles.osFilterbar}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['rejected','Rejected']] as [RetroFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}<span>{filtered.length} OF {m.total} RECORDS</span></div>
+          <div className={styles.osFilterbar}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['accepted','Accepted'],['rejected','Rejected']] as [RetroFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}<span>{filtered.length} OF {m.total} RECORDS</span></div>
           <div className={styles.osFinderStatus}><span>◼ INDEXED</span><span>VIEW: LIST</span><span>DISK: LOCAL</span><b>{theme.toUpperCase()} MODE</b></div>
           <div className={styles.osTable}>
             <div className={styles.osTableHead}><span>NAME</span><span>FIT</span><span>STATE</span><span>APPLIED</span><span>NEXT</span></div>
@@ -497,7 +485,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           <div className={styles.osDialogBody}>
             <div className={styles.osFileIdentity}><div className={styles.osFileIcon}><BriefcaseBusiness size={28}/></div><div><span>APPLICATION RECORD</span><h2>{selected.company}</h2><p>{selected.role}</p></div></div>
             <div className={styles.osInfoStrip}><div><span>FIT</span><b>{selected.score===null?'—':selected.score.toFixed(1)}</b></div><div><span>STATE</span><b>{status(selected)}</b></div><div><span>APPLIED</span><b>{fmt(selected.appliedDate)}</b></div></div>
-            <section><div className={styles.osSectionTitle}>PROCESS LOG</div><div className={styles.osTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{e.state} · {e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
+            <section><div className={styles.osSectionTitle}>PROCESS LOG</div><div className={styles.osTimeline}><div><i/><span><b>Applied</b><small>{fmt(selected.appliedDate)}</small></span></div>{ordered(selected).map(e=><div key={e.id}><i/><span><b>{e.label||e.type}</b><small>{eventStateLabel(e)?eventStateLabel(e)+' · ':''}{e.date?fmt(e.date):'NO DATE'}</small>{e.notes&&<small>{e.notes}</small>}</span></div>)}</div></section>
             <section><div className={styles.osSectionTitle}>NEXT ACTION</div><p>{selected.nextAction||'No next action set.'}</p>{selected.dueDate&&<time>{fmt(selected.dueDate)}</time>}</section>
             <section><div className={styles.osSectionTitle}>NOTES</div><p>{selected.notes||'No notes yet.'}</p></section>
           </div>
@@ -513,7 +501,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           <div className={styles.osFormGrid}><label>NEXT ACTION<input value={editing.nextAction} onChange={e=>editField('nextAction',e.target.value)}/></label><label>DUE DATE<input type="date" value={editing.dueDate} onChange={e=>editField('dueDate',e.target.value)}/></label></div>
           <label>NOTES<textarea rows={5} value={editing.notes} onChange={e=>editField('notes',e.target.value)}/></label>
           <div className={styles.osTimelineEditorHead}><span>PROCESS LOG</span><button type="button" onClick={addEditEvent}>＋ ADD EVENT</button></div>
-          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select value={event.type} onChange={e=>editEvent(event.id,'type',e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select><select value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{states.map(s=><option key={s}>{s}</option>)}</select><input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
+          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
           <div className={styles.osDialogActions}><button type="button" onClick={()=>setEditing(null)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'SAVE CHANGES'}</button></div>
         </form>}
       </div>
