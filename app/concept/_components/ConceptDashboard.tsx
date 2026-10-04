@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,MousePointer2,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown,Clock3} from 'lucide-react';
+import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown,Clock3} from 'lucide-react';
 import {Job,Event,active,ordered,parseBackup,reached,replied,status,uid,types,states} from '@/lib/model';
 import styles from '../concept.module.css';
 
