@@ -3,7 +3,7 @@
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {ArrowRight,ArrowUpRight,BriefcaseBusiness,Database,FileText,FolderOpen,TerminalSquare,TrendingUp,Plus,Search,X,Check,Download,Upload,Pencil,Trash2,ChevronDown} from 'lucide-react';
-import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventStateOptions,eventStateLabel} from '@/lib/model';
+import {Job,Event,active,ordered,parseBackup,reached,status,uid,types,eventStateOptions,defaultEventState,eventStateLabel} from '@/lib/model';
 import {useTrackerData} from '@/hooks/use-tracker-data';
 import {buildTrackerAnalytics,localISODate,percentNumber} from '@/lib/tracker-analytics';
 import {backupFilename,backupJSON,downloadText,simpleCSV} from '@/lib/tracker-export';
@@ -74,6 +74,8 @@ function HeaderIndex({no,label,tail}:{no:string;label:string;tail:string}){
 
 type EditorialView='overview'|'applications'|'pipeline'|'statistics';
 type ArchiveFilter='all'|'active'|'strong'|'interview'|'accepted'|'rejected';
+type ApplicationDraft={company:string;role:string;appliedDate:string;score:string;url:string;notes:string;nextAction:string;dueDate:string;events:Event[]};
+const blankApplicationDraft=():ApplicationDraft=>({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:'',events:[]});
 
 function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<boolean>;saving:boolean}){
   const m=useMetrics(jobs);
@@ -88,7 +90,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const [adding,setAdding]=useState(false);
   const [incoming,setIncoming]=useState<Job[]|null>(null);
   const [importError,setImportError]=useState('');
-  const [draft,setDraft]=useState({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});
+  const [draft,setDraft]=useState<ApplicationDraft>(()=>blankApplicationDraft());
   const overlayOpen=Boolean(selected||adding||incoming||importError);
   useEffect(()=>{try{const saved=localStorage.getItem('career-tracker-editorial-theme');if(saved==='archive'||saved==='signal'||saved==='night')setTheme(saved)}catch{}},[]);
   useEffect(()=>{if(!overlayOpen)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.body.style.overflow=previous}},[overlayOpen]);
@@ -128,6 +130,10 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   const editEventType=(id:string,type:string)=>setEditing(d=>d?changeTimelineEventType(d,id,type):null);
   function addEditEvent(){setEditing(d=>d?appendTimelineEvent(d):null)}
   function removeEditEvent(id:string){setEditing(d=>d?removeTimelineEvent(d,id):null)}
+  const editDraftEvent=(id:string,key:keyof Event,value:string)=>setDraft(d=>({...d,events:d.events.map(event=>event.id===id?{...event,[key]:value}:event)}));
+  const editDraftEventType=(id:string,type:string)=>setDraft(d=>({...d,events:d.events.map(event=>event.id===id?{...event,type,state:defaultEventState(type)}:event)}));
+  const addDraftEvent=()=>setDraft(d=>({...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}));
+  const removeDraftEvent=(id:string)=>setDraft(d=>({...d,events:d.events.filter(event=>event.id!==id)}));
   async function saveEdit(e:FormEvent){
     e.preventDefault(); if(!editing)return;
     const score=editing.score===null?null:Number(editing.score);
@@ -142,9 +148,9 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
   async function addApplication(e:FormEvent){
     e.preventDefault();
     const score=draft.score===''?null:Number(draft.score);
-    const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:[],nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};
+    const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:draft.events,nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};
     if(!job.company||!job.role||score!==null&&(score<0||score>5))return;
-    if(await persist([job,...jobs])){setAdding(false);setDraft({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});setView('applications')}
+    if(await persist([job,...jobs])){setAdding(false);setDraft(blankApplicationDraft());setView('applications')}
   }
 
   return <div className={[styles.editorial,themeClass].join(' ')} aria-busy={saving}>
@@ -216,7 +222,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
       <div className={styles.archiveFilters}>{([['all','All'],['active','Active'],['strong','4.0+ Fit'],['interview','Interview'],['accepted','Accepted'],['rejected','Rejected']] as [ArchiveFilter,string][]).map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
       <section className={styles.archiveTable}>
         <div className={styles.archiveHead}><span>NO.</span><span>COMPANY / ROLE</span><span>FIT</span><span>STAGE</span><span>APPLIED</span><span>NEXT</span></div>
-        {filtered.map((a,i)=><button key={a.id} className={styles.archiveRow} onClick={()=>openJob(a)}><span>{String(i+1).padStart(3,'0')}</span><span><strong title={a.company}>{a.company}</strong><small title={a.role}>{a.role}</small></span><b>{a.score===null?'—':a.score.toFixed(1)}</b><em title={status(a)}>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span><small title={a.nextAction||'Awaiting response'}>{a.nextAction||'Awaiting response'}</small><ArrowRight size={14}/></span></button>)}
+        {filtered.map((a,i)=><button key={a.id} className={[styles.archiveRow,status(a)==='Rejected'?styles.archiveRowRejected:''].join(' ')} onClick={()=>openJob(a)}><span>{String(i+1).padStart(3,'0')}</span><span><strong title={a.company}>{a.company}</strong><small title={a.role}>{a.role}</small></span><b>{a.score===null?'—':a.score.toFixed(1)}</b><em title={status(a)}>{status(a)}</em><time>{fmt(a.appliedDate)}</time><span><small title={a.nextAction||'Awaiting response'}>{a.nextAction||'Awaiting response'}</small><ArrowRight size={14}/></span></button>)}
         {!filtered.length&&<div className={styles.archiveEmpty}><strong>No matching applications.</strong><span>Try another search or clear the active filter.</span><button onClick={()=>{setQuery('');setFilter('all')}}>CLEAR FILTERS</button></div>}
       </section>
     </div>}
@@ -280,6 +286,7 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
             <input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/>
             <input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/>
             <button type="button" aria-label="Remove event" onClick={()=>removeEditEvent(event.id)}><X size={13}/></button>
+            <input className={styles.timelineEventNotes} aria-label="Stage notes" placeholder="Stage notes (optional)" value={event.notes} onChange={e=>editEvent(event.id,'notes',e.target.value)}/>
           </div>)}</div>
           <div className={styles.editActions}><button type="button" onClick={()=>setEditing(null)}>CANCEL</button><button className={styles.editorialPrimary} type="submit" disabled={saving}>{saving?'SAVING…':<><Check size={14}/> SAVE CHANGES</>}</button></div>
         </form>}
@@ -293,6 +300,17 @@ function Editorial({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promi
       <label>JOB URL<input type="url" value={draft.url} onChange={e=>setDraft({...draft,url:e.target.value})}/></label>
       <div className={styles.addGrid}><label>NEXT ACTION<input value={draft.nextAction} onChange={e=>setDraft({...draft,nextAction:e.target.value})}/></label><label>DUE DATE<input type="date" value={draft.dueDate} onChange={e=>setDraft({...draft,dueDate:e.target.value})}/></label></div>
       <label>NOTES<textarea rows={5} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>
+      <div className={styles.timelineEditorHead}><span>PROCESS TIMELINE</span><button type="button" onClick={addDraftEvent}><Plus size={12}/> ADD STAGE</button></div>
+      <p className={styles.timelineStateHelp}>OPTIONAL · ADD INTERVIEWS, ASSESSMENTS, UPDATES OR OUTCOMES NOW, OR LATER</p>
+      <div className={styles.timelineEditor}>{draft.events.map((event,i)=><div key={event.id} className={styles.timelineEditRow}>
+        <span>{String(i+1).padStart(2,'0')}</span>
+        <select aria-label="Event type" value={event.type} onChange={e=>editDraftEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>
+        {eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} value={event.state} onChange={e=>editDraftEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.eventStateStatic}>RECORDED</span>}
+        <input type="date" value={event.date} onChange={e=>editDraftEvent(event.id,'date',e.target.value)}/>
+        <input placeholder="Label" value={event.label} onChange={e=>editDraftEvent(event.id,'label',e.target.value)}/>
+        <button type="button" aria-label="Remove stage" onClick={()=>removeDraftEvent(event.id)}><X size={13}/></button>
+        <input className={styles.timelineEventNotes} aria-label="Stage notes" placeholder="Stage notes (optional)" value={event.notes} onChange={e=>editDraftEvent(event.id,'notes',e.target.value)}/>
+      </div>)}</div>
       <button className={styles.editorialPrimary} type="submit" disabled={saving}>{saving?'SAVING…':<><Check size={14}/> SAVE APPLICATION</>}</button>
     </form></div>}
 
@@ -327,7 +345,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   const [incoming,setIncoming]=useState<Job[]|null>(null);
   const [importError,setImportError]=useState('');
   const [deleteConfirm,setDeleteConfirm]=useState(false);
-  const [draft,setDraft]=useState({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});
+  const [draft,setDraft]=useState<ApplicationDraft>(()=>blankApplicationDraft());
 
   useEffect(()=>{try{const saved=localStorage.getItem('career-tracker-retro-theme');if(saved==='vapor'||saved==='classic'||saved==='midnight')setTheme(saved)}catch{}},[]);
   useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key!=='Escape')return;if(editing){setEditing(null);return}if(selected){setSelected(null);setDeleteConfirm(false);return}if(adding){setAdding(false);return}if(incoming||importError){setIncoming(null);setImportError('')}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[editing,selected,adding,incoming,importError]);
@@ -352,9 +370,13 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
   const editEventType=(id:string,type:string)=>setEditing(d=>d?changeTimelineEventType(d,id,type):null);
   function addEditEvent(){setEditing(d=>d?appendTimelineEvent(d):null)}
   function removeEditEvent(id:string){setEditing(d=>d?removeTimelineEvent(d,id):null)}
+  const editDraftEvent=(id:string,key:keyof Event,value:string)=>setDraft(d=>({...d,events:d.events.map(event=>event.id===id?{...event,[key]:value}:event)}));
+  const editDraftEventType=(id:string,type:string)=>setDraft(d=>({...d,events:d.events.map(event=>event.id===id?{...event,type,state:defaultEventState(type)}:event)}));
+  const addDraftEvent=()=>setDraft(d=>({...d,events:[...d.events,{id:uid(),type:'Interview',label:'',date:today(),state:defaultEventState('Interview'),notes:''}]}));
+  const removeDraftEvent=(id:string)=>setDraft(d=>({...d,events:d.events.filter(event=>event.id!==id)}));
   async function saveEdit(e:FormEvent){e.preventDefault();if(!editing)return;const score=editing.score===null?null:Number(editing.score);if(!editing.company.trim()||!editing.role.trim()||score!==null&&(!Number.isFinite(score)||score<0||score>5))return;const updated={...editing,company:editing.company.trim(),role:editing.role.trim(),score};if(await persist(upsertApplication(jobs,updated))){setSelected(updated);setEditing(null)}}
   async function deleteApplication(){if(!selected)return;if(await persist(removeApplication(jobs,selected.id))){setSelected(null);setEditing(null);setDeleteConfirm(false)}}
-  async function addApplication(e:FormEvent){e.preventDefault();const score=draft.score===''?null:Number(draft.score);const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:[],nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};if(!job.company||!job.role||score!==null&&(score<0||score>5))return;if(await persist([job,...jobs])){setAdding(false);setDraft({company:'',role:'',appliedDate:today(),score:'',url:'',notes:'',nextAction:'',dueDate:''});setView('applications')}}
+  async function addApplication(e:FormEvent){e.preventDefault();const score=draft.score===''?null:Number(draft.score);const job:Job={id:uid(),company:draft.company.trim(),role:draft.role.trim(),url:draft.url.trim(),appliedDate:draft.appliedDate||today(),score:Number.isFinite(score as number)?score:null,notes:draft.notes.trim(),events:draft.events,nextAction:draft.nextAction.trim(),dueDate:draft.dueDate,reason:''};if(!job.company||!job.role||score!==null&&(score<0||score>5))return;if(await persist([job,...jobs])){setAdding(false);setDraft(blankApplicationDraft());setView('applications')}}
 
   return <div className={[styles.retro,themeClass].join(' ')}>
     <ConceptNav variant="retro" retroTheme={theme} onRetroTheme={chooseTheme}/>
@@ -470,7 +492,7 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           <label>NOTES<textarea rows={5} value={editing.notes} onChange={e=>editField('notes',e.target.value)}/></label>
           <div className={styles.osTimelineEditorHead}><span>PROCESS LOG</span><button type="button" onClick={addEditEvent}>＋ ADD EVENT</button></div>
           <div className={styles.osTimelineStateHelp}>UPDATE = INFO ONLY · PLANNED = ANNOUNCED · SCHEDULED = DATE FIXED · COMPLETED = DONE / WAITING · PASSED = ADVANCED</div>
-          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Rescinded = employer withdrew the offer':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button></div>)}</div>
+          <div className={styles.osTimelineEditor}>{editing.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} title={event.type==='Offer'?'Received = open offer · Accepted/Declined = final outcome · Rescinded = employer withdrew the offer':'Completed = happened, awaiting result · Passed = confirmed advancement'} value={event.state} onChange={e=>editEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeEditEvent(event.id)}>×</button><input className={styles.osTimelineEventNotes} aria-label="Stage notes" placeholder="Stage notes (optional)" value={event.notes} onChange={e=>editEvent(event.id,'notes',e.target.value)}/></div>)}</div>
           <div className={styles.osDialogActions}><button type="button" onClick={()=>setEditing(null)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'SAVE CHANGES'}</button></div>
         </form>}
       </div>
@@ -485,6 +507,9 @@ function Retro({jobs,persist,saving}:{jobs:Job[];persist:(next:Job[])=>Promise<b
           <label>JOB URL<input type="url" value={draft.url} onChange={e=>setDraft({...draft,url:e.target.value})}/></label>
           <div className={styles.osFormGrid}><label>NEXT ACTION<input value={draft.nextAction} onChange={e=>setDraft({...draft,nextAction:e.target.value})}/></label><label>DUE DATE<input type="date" value={draft.dueDate} onChange={e=>setDraft({...draft,dueDate:e.target.value})}/></label></div>
           <label>NOTES<textarea rows={5} value={draft.notes} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>
+          <div className={styles.osTimelineEditorHead}><span>PROCESS LOG</span><button type="button" onClick={addDraftEvent}>＋ ADD STAGE</button></div>
+          <div className={styles.osTimelineStateHelp}>OPTIONAL · ADD PROCESS HISTORY NOW OR LATER</div>
+          <div className={styles.osTimelineEditor}>{draft.events.map((event,i)=><div className={styles.osTimelineEditRow} key={event.id}><span>{String(i+1).padStart(2,'0')}</span><select aria-label="Event type" value={event.type} onChange={e=>editDraftEventType(event.id,e.target.value)}>{types.map(t=><option key={t}>{t}</option>)}</select>{eventStateOptions(event.type).length?<select className={styles.eventStateSelect} aria-label={event.type==='Offer'?'Offer status':'Stage status'} value={event.state} onChange={e=>editDraftEvent(event.id,'state',e.target.value)}>{eventStateOptions(event.type).map(s=><option key={s}>{s}</option>)}</select>:<span className={styles.osEventStateStatic}>RECORDED</span>}<input type="date" value={event.date} onChange={e=>editDraftEvent(event.id,'date',e.target.value)}/><input placeholder="Label" value={event.label} onChange={e=>editDraftEvent(event.id,'label',e.target.value)}/><button type="button" onClick={()=>removeDraftEvent(event.id)}>×</button><input className={styles.osTimelineEventNotes} aria-label="Stage notes" placeholder="Stage notes (optional)" value={event.notes} onChange={e=>editDraftEvent(event.id,'notes',e.target.value)}/></div>)}</div>
           <div className={styles.osDialogActions}><button type="button" onClick={()=>setAdding(false)}>CANCEL</button><button className={styles.osPrimary} type="submit" disabled={saving}>{saving?'SAVING…':'CREATE RECORD'}</button></div>
         </div>
       </form>
