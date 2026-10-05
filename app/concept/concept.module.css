@@ -362,6 +362,42 @@
   .journeyReach>div{grid-template-columns:82px 34px 1fr;gap:8px}.journeyReach small{padding-left:116px}.exitGrid{grid-template-columns:1fr}.exitGrid>div,.exitGrid>div:nth-child(2n),.exitGrid>div:nth-last-child(-n+2){border-right:0;border-bottom:1px solid var(--line)}.exitGrid>div:last-child{border-bottom:0}
 }
 
+
+/* Editorial outcome emphasis + timeline note parity */
+.archiveRowRejected{background:color-mix(in srgb,var(--accent) 9%,var(--panel));box-shadow:inset 4px 0 0 var(--accent)}
+.archiveRowRejected:hover{background:color-mix(in srgb,var(--accent) 15%,var(--panel))}
+.archiveRowRejected em{background:var(--accent);border-color:var(--accent);color:#111;font-weight:750}
+.themeSignal .archiveRowRejected{background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+.themeSignal .archiveRowRejected:hover{background:color-mix(in srgb,var(--accent) 19%,var(--panel))}
+.themeSignal .archiveRowRejected em{background:var(--accent);color:#111}
+.themeNight .archiveRowRejected{background:color-mix(in srgb,var(--accent) 13%,var(--panel));box-shadow:inset 4px 0 0 var(--accent)}
+.themeNight .archiveRowRejected em{background:var(--accent);color:#111}
+.themeArchive .archiveRowRejected{background:color-mix(in srgb,var(--accent) 9%,var(--panel));box-shadow:inset 4px 0 0 var(--accent)}
+.themeArchive .archiveRowRejected em{background:var(--accent);color:#111}
+
+.timelineEventNotes{grid-column:2/-1!important;height:38px!important;margin-top:1px!important;background:color-mix(in srgb,var(--soft) 20%,var(--panel))!important;border-style:dashed!important;font-size:10px!important}
+.timelineEventNotes::placeholder{color:var(--muted);opacity:.8}
+.timelineEditRow:has(.timelineEventNotes){padding-bottom:8px;border-bottom:1px dotted color-mix(in srgb,var(--line) 24%,transparent)}
+.timelineEditRow:has(.timelineEventNotes):last-child{border-bottom:0}
+.addPanel{width:min(840px,96vw)}
+.addPanel .timelineEditor{margin-bottom:22px}
+.addPanel>.editorialPrimary{margin-top:8px}
+
+.osTimelineEventNotes{grid-column:2/-1!important;height:34px!important;margin-top:0!important;background:var(--os-panel-2)!important;border-style:dashed!important}
+.osTimelineEditRow:has(.osTimelineEventNotes){padding-bottom:7px;border-bottom:1px dotted color-mix(in srgb,var(--os-line) 42%,transparent)}
+.osTimelineEditRow:has(.osTimelineEventNotes):last-child{border-bottom:0}
+.osDialog:has(.osTimelineEditor){width:min(880px,calc(100vw - 30px))}
+
+@media(max-width:900px){
+  .timelineEventNotes{grid-column:2/4!important}
+}
+@media(max-width:650px){
+  .timelineEventNotes{grid-column:2!important}
+}
+@media(max-width:760px){
+  .osTimelineEventNotes{grid-column:2!important}
+}
+
 /* 02 — Career OS */
 .retro{
   min-height:100vh;
