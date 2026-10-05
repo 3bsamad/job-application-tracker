@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type {Job} from '../lib/model.ts';
-import {appendTimelineEvent,changeTimelineEventType,createTimelineEvent,removeApplication,removeTimelineEvent,upsertApplication} from '../lib/tracker-actions.ts';
+import {appendTimelineEvent,changeTimelineEventType,createTimelineEvent,removeApplication,removeTimelineEvent,updateTimelineEvent,upsertApplication} from '../lib/tracker-actions.ts';
 
 const base:Job={id:'job-1',company:'Example',role:'Engineer',url:'',appliedDate:'2026-09-01',score:null,notes:'',nextAction:'',dueDate:'',reason:'',events:[{id:'event-1',type:'Interview',label:'Round 1',date:'2026-09-10',state:'Completed',notes:''}]};
 
@@ -12,6 +12,12 @@ test('changing an event type resets its state to a valid default for the new typ
 
   const update=changeTimelineEventType(offer,'event-1','Update');
   assert.equal(update.events[0].state,'Recorded');
+});
+
+test('timeline event notes are editable without mutating the original application',()=>{
+  const changed=updateTimelineEvent(base,'event-1','notes','Discussed system design and onsite expectations');
+  assert.equal(changed.events[0].notes,'Discussed system design and onsite expectations');
+  assert.equal(base.events[0].notes,'');
 });
 
 test('timeline and application helpers preserve immutable list behavior',()=>{
